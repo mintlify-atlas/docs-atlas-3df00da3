@@ -1,0 +1,98 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Bool CLI",
+  "projectDescription": "Command-line tool for managing projects and deployments on Bool.com",
+  "theme": "aspen",
+  "primaryColor": "#2563EB",
+  "lightColor": "#3B82F6",
+  "darkColor": "#1E40AF",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Essentials",
+            "pages": [
+              "authentication",
+              "configuration",
+              "project-config"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Commands",
+        "groups": [
+          {
+            "group": "Command Reference",
+            "pages": [
+              "commands/overview",
+              "commands/auth",
+              "commands/bools",
+              "commands/versions",
+              "commands/shipit",
+              "commands/skill"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Workflows",
+            "pages": [
+              "guides/creating-deploying",
+              "guides/anonymous-deployment",
+              "guides/managing-versions",
+              "guides/file-management"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "guides/exclusion-patterns",
+              "guides/json-output",
+              "guides/environment-variables",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Authentication and API key management",
+    "Create and manage Bool projects",
+    "Deploy local files to Bool.com",
+    "Version control and history tracking",
+    "Anonymous quick deployment with shipit",
+    "Agent skill installation for AI integration",
+    "Project configuration with .bool/config",
+    "File exclusion patterns and .boolignore support"
+  ],
+  "publicApiSurface": [
+    "bool auth login",
+    "bool auth status",
+    "bool list",
+    "bool create <name>",
+    "bool show [slug]",
+    "bool update [slug]",
+    "bool delete [slug]",
+    "bool open [slug]",
+    "bool versions [slug]",
+    "bool deploy [slug] [dir]",
+    "bool pull [slug] [dir]",
+    "bool shipit [directory]",
+    "bool skill [directory]"
+  ]
+}
