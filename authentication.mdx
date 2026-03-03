@@ -1,0 +1,227 @@
+---
+title: Authentication
+description: Set up and manage API authentication for the Bool CLI
+---
+
+The Bool CLI uses API keys to authenticate requests to the Bool platform. You can configure your API key using environment variables or the interactive login command.
+
+## Setting up authentication
+
+<Steps>
+  <Step title="Get your API key">
+    Log in to your Bool account at [bool.com](https://bool.com) and navigate to your account settings to generate an API key.
+  </Step>
+
+  <Step title="Save your API key">
+    Choose one of the following methods to configure your API key:
+
+    <Tabs>
+      <Tab title="Interactive login">
+        Run the `bool auth login` command and enter your API key when prompted:
+
+        ```bash
+        bool auth login
+        ```
+
+        The CLI will prompt you:
+
+        ```
+        Enter your bool.com API key:
+        ```
+
+        After entering your key, you'll see:
+
+        ```
+        ✔ API key saved to ~/.config/bool-cli/config.json
+        ```
+
+        <Info>
+          This method stores your API key in `~/.config/bool-cli/config.json` for persistent use across all sessions.
+        </Info>
+      </Tab>
+
+      <Tab title="Environment variable">
+        Set the `BOOL_API_KEY` environment variable:
+
+        ```bash
+        export BOOL_API_KEY="your-api-key-here"
+        ```
+
+        For persistent configuration, add this to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
+
+        ```bash
+        # Add to ~/.bashrc or ~/.zshrc
+        export BOOL_API_KEY="your-api-key-here"
+        ```
+
+        <Note>
+          Environment variables take precedence over the stored configuration file.
+        </Note>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Verify authentication">
+    Check that your authentication is working:
+
+    ```bash
+    bool auth status
+    ```
+
+    You should see output similar to:
+
+    ```
+    API key: bool_12…abcd
+    ✔ API is reachable and healthy.
+    ```
+  </Step>
+</Steps>
+
+## Authentication methods
+
+### API key precedence
+
+The CLI checks for API keys in the following order:
+
+1. **Environment variable** (`BOOL_API_KEY`) - highest priority
+2. **Configuration file** (`~/.config/bool-cli/config.json`) - used if no env var is set
+
+From the source code (`src/utils/config.js:22`):
+
+```javascript
+export function getApiKey() {
+  return process.env.BOOL_API_KEY || readConfig().apiKey || null;
+}
+```
+
+### Configuration file location
+
+API keys saved via `bool auth login` are stored in:
+
+```
+~/.config/bool-cli/config.json
+```
+
+The configuration file structure:
+
+```json
+{
+  "apiKey": "your-api-key-here"
+}
+```
+
+## Managing authentication
+
+### Check authentication status
+
+Verify your authentication and check API connectivity:
+
+```bash
+bool auth status
+```
+
+This command:
+- Displays your API key (masked for security: first 8 and last 4 characters)
+- Tests connectivity to the Bool API
+- Confirms the API is healthy and reachable
+
+<CodeGroup>
+```bash Success
+$ bool auth status
+API key: bool_12…abcd
+✔ API is reachable and healthy.
+```
+
+```bash No API key
+$ bool auth status
+✖ No API key configured. Run: bool auth login
+```
+
+```bash API unreachable
+$ bool auth status
+API key: bool_12…abcd
+✖ API health check failed: Connection timeout
+```
+</CodeGroup>
+
+### Update your API key
+
+To change your API key, simply run `bool auth login` again:
+
+```bash
+bool auth login
+```
+
+This will overwrite the existing API key in your configuration file.
+
+## Security best practices
+
+<Warning>
+  **Never commit API keys to version control**. Always use environment variables or the configuration file to store sensitive credentials.
+</Warning>
+
+### Protecting your API key
+
+- **Use environment variables** for CI/CD pipelines and automated deployments
+- **Store API keys securely** in password managers or secret management systems
+- **Rotate keys regularly** if you suspect they've been compromised
+- **Use different keys** for different environments (development, staging, production)
+
+### File permissions
+
+The CLI automatically creates the configuration directory with appropriate permissions:
+
+```bash
+# Configuration directory location
+~/.config/bool-cli/
+
+# Configuration file
+~/.config/bool-cli/config.json
+```
+
+<Info>
+  Ensure your `~/.config/bool-cli/config.json` file has restricted permissions (e.g., `600`) to prevent unauthorized access.
+</Info>
+
+## Troubleshooting
+
+### Missing API key error
+
+If you see an error like:
+
+```
+✖ No API key configured. Run: bool auth login
+```
+
+This means:
+- No `BOOL_API_KEY` environment variable is set
+- No API key exists in `~/.config/bool-cli/config.json`
+
+**Solution**: Run `bool auth login` or set the `BOOL_API_KEY` environment variable.
+
+### API health check failed
+
+If `bool auth status` shows:
+
+```
+✖ API health check failed: <error message>
+```
+
+Possible causes:
+- Network connectivity issues
+- Invalid API URL configuration (see [Configuration](/configuration))
+- API service is down
+
+**Solution**: Check your network connection and verify the API URL is correct.
+
+### Invalid API key
+
+If commands fail with authentication errors:
+
+```
+✖ API error: 401
+```
+
+This indicates your API key is invalid or expired.
+
+**Solution**: Generate a new API key from bool.com and update your configuration using `bool auth login`.

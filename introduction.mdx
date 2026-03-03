@@ -1,0 +1,84 @@
+---
+title: Introduction
+description: CLI tool for managing projects on bool.com
+---
+
+## What is Bool CLI?
+
+Bool CLI is a powerful command-line tool for managing projects on [bool.com](https://bool.com). Deploy your code, manage versions, and collaborate with your team—all from your terminal.
+
+Whether you need to ship code quickly with a single command or manage production deployments with full version control, Bool CLI provides a streamlined workflow for modern web development.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get started in under 2 minutes
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install the CLI with npm, yarn, or pnpm
+  </Card>
+  <Card title="Commands" icon="terminal" href="/commands/overview">
+    Explore all available commands
+  </Card>
+  <Card title="Guides" icon="book-open" href="/guides/creating-deploying">
+    Learn workflows and best practices
+  </Card>
+</CardGroup>
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Ship instantly" icon="bolt">
+    Deploy your code with `bool shipit`—no API key required. Creates an anonymous Bool and uploads files in one step.
+  </Card>
+  <Card title="Version control" icon="clock-rotate-left">
+    Track every deployment with automatic versioning. View history, pull specific versions, and rollback when needed.
+  </Card>
+  <Card title="Team collaboration" icon="users">
+    Manage visibility settings (private, team, unlisted, public) and share projects with your team.
+  </Card>
+  <Card title="Smart file handling" icon="file-code">
+    Automatic `.boolignore` support with gitignore syntax. Binary files handled automatically.
+  </Card>
+</CardGroup>
+
+## Common workflows
+
+### Quick deployment
+
+Ship your code in seconds without any setup:
+
+```bash
+bool shipit
+```
+
+This command creates an anonymous Bool and deploys your files instantly. No API key needed.
+
+### Production deployment
+
+For authenticated deployments with full version control:
+
+```bash
+bool auth login
+bool deploy --message "Add dark mode support"
+```
+
+### Managing projects
+
+List, create, and manage your Bools:
+
+```bash
+bool list
+bool create my-project
+bool show my-project
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Get started" icon="play" href="/quickstart">
+    Complete the quickstart guide
+  </Card>
+  <Card title="Learn the commands" icon="book" href="/commands/overview">
+    Explore all available commands
+  </Card>
+</CardGroup>

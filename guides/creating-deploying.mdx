@@ -1,0 +1,242 @@
+---
+title: Creating and deploying
+description: Learn the two approaches to creating and deploying Bools with the CLI
+---
+
+The Bool CLI offers two approaches for creating and deploying your project: you can explicitly create a Bool first, or let the deploy command auto-create one for you.
+
+## Understanding the approaches
+
+<CardGroup cols={2}>
+  <Card title="Explicit create" icon="plus">
+    Create a Bool first with `bool create`, then deploy to it. Gives you control over the Bool name upfront.
+  </Card>
+  <Card title="Auto-create" icon="bolt">
+    Run `bool deploy` directly. The CLI creates a Bool automatically if one doesn't exist yet.
+  </Card>
+</CardGroup>
+
+## Explicit create then deploy
+
+This approach gives you full control over your Bool's name before deploying any files.
+
+<Steps>
+  <Step title="Create a new Bool">
+    Use the `bool create` command with a descriptive name:
+
+    ```bash
+    bool create "My Portfolio Site"
+    ```
+
+    The CLI responds with confirmation:
+
+    ```bash
+    ✔ Created "My Portfolio Site" (my-portfolio-site)
+    ℹ URL: https://my-portfolio-site.bool01.com
+    ```
+
+    <Note>
+      The slug is auto-generated from your Bool name. In this case, `My Portfolio Site` becomes `my-portfolio-site`.
+    </Note>
+  </Step>
+
+  <Step title="Navigate to your project directory">
+    Change to the directory containing the files you want to deploy:
+
+    ```bash
+    cd ~/projects/portfolio
+    ```
+  </Step>
+
+  <Step title="Deploy your files">
+    Deploy to your newly created Bool:
+
+    ```bash
+    bool deploy my-portfolio-site
+    ```
+
+    The CLI deploys your files and shows the live URL:
+
+    ```bash
+    ℹ Deploying 12 file(s) from /home/user/projects/portfolio…
+    ✔ Deployed v1 (12 files)
+    ℹ Live URL: https://my-portfolio-site.bool01.com
+    ```
+
+    <Tip>
+      The CLI automatically creates a `.bool/config` file in your project directory to remember which Bool this directory is linked to.
+    </Tip>
+  </Step>
+
+  <Step title="Deploy updates">
+    After the initial deployment, you can omit the slug:
+
+    ```bash
+    bool deploy
+    ```
+
+    The CLI reads the slug from `.bool/config` and deploys a new version:
+
+    ```bash
+    ℹ Deploying 12 file(s) from /home/user/projects/portfolio…
+    ✔ Deployed v2 (12 files)
+    ℹ Live URL: https://my-portfolio-site.bool01.com
+    ```
+  </Step>
+</Steps>
+
+## Auto-create with deploy
+
+This streamlined approach creates the Bool automatically during your first deployment.
+
+<Steps>
+  <Step title="Navigate to your project">
+    Go to the directory you want to deploy:
+
+    ```bash
+    cd ~/projects/my-app
+    ```
+  </Step>
+
+  <Step title="Run deploy without a Bool">
+    Simply run deploy without creating a Bool first:
+
+    ```bash
+    bool deploy
+    ```
+
+    The CLI automatically creates a new Bool using your directory name:
+
+    ```bash
+    ℹ Creating new Bool "my-app"…
+    ✔ Created Bool "my-app" (my-app)
+    ℹ Deploying 8 file(s) from /home/user/projects/my-app…
+    ✔ Deployed v1 (8 files)
+    ℹ Live URL: https://my-app.bool01.com
+    ```
+
+    <Note>
+      The Bool name defaults to your directory name. You can customize this by setting a name in `.bool/config` before deploying.
+    </Note>
+  </Step>
+
+  <Step title="Deploy subsequent versions">
+    Future deploys recognize the existing Bool:
+
+    ```bash
+    bool deploy
+    ```
+
+    ```bash
+    ℹ Deploying 8 file(s) from /home/user/projects/my-app…
+    ✔ Deployed v2 (8 files)
+    ℹ Live URL: https://my-app.bool01.com
+    ```
+  </Step>
+</Steps>
+
+## Adding commit messages
+
+Both approaches support optional commit messages to document your deployments:
+
+<CodeGroup>
+```bash Explicit create
+bool deploy my-portfolio-site -m "Added contact form"
+```
+
+```bash Auto-create
+bool deploy -m "Initial deployment"
+```
+</CodeGroup>
+
+Commit messages appear in your version history when you run `bool versions`.
+
+## Deploying from a different directory
+
+You can deploy files from any directory by specifying the path:
+
+```bash
+bool deploy my-portfolio-site ./dist
+```
+
+Or with auto-create:
+
+```bash
+bool deploy ./build
+```
+
+<Warning>
+  The CLI automatically ignores `.git`, `node_modules`, `__pycache__`, `.DS_Store`, and `.bool` directories. Create a `.boolignore` file to exclude additional patterns.
+</Warning>
+
+## Understanding .bool/config
+
+After your first deployment, the CLI creates a `.bool/config` file in your project directory:
+
+```json .bool/config
+{
+  "slug": "my-portfolio-site",
+  "name": "My Portfolio Site"
+}
+```
+
+This file links your local directory to the remote Bool, allowing you to run commands like `bool deploy` without specifying the slug.
+
+## Viewing your deployed Bool
+
+After deployment, you can:
+
+<Tabs>
+  <Tab title="Open in browser">
+    ```bash
+    bool open
+    ```
+
+    This opens your live Bool URL in your default browser.
+  </Tab>
+
+  <Tab title="View details">
+    ```bash
+    bool show
+    ```
+
+    ```bash
+    ℹ Name: My Portfolio Site
+    ℹ Slug: my-portfolio-site
+    ℹ Visibility: private
+    ℹ Description: (none)
+    ℹ URL: https://my-portfolio-site.bool01.com
+    ℹ Created: 2026-03-03T10:30:00Z
+    ℹ Updated: 2026-03-03T10:35:00Z
+
+    ℹ Latest version: v2
+    ℹ   Files: 12
+    ℹ   Message: Added contact form
+    ℹ   Created: 2026-03-03T10:35:00Z
+    ```
+  </Tab>
+
+  <Tab title="List all Bools">
+    ```bash
+    bool list
+    ```
+
+    Shows a table of all your Bools with their slugs, visibility, and URLs.
+  </Tab>
+</Tabs>
+
+## Which approach should you use?
+
+<AccordionGroup>
+  <Accordion title="Use explicit create when...">
+    - You want to choose a specific Bool name before deploying
+    - You're creating multiple Bools and want to avoid name collisions
+    - You prefer separating resource creation from deployment
+  </Accordion>
+
+  <Accordion title="Use auto-create when...">
+    - You want the fastest path from code to deployment
+    - You're okay with the default naming (based on directory name)
+    - You're prototyping or working on a single-Bool project
+  </Accordion>
+</AccordionGroup>

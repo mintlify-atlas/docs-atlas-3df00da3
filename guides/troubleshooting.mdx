@@ -1,0 +1,470 @@
+---
+title: Troubleshooting
+description: Solutions to common issues with the Bool CLI
+---
+
+This guide covers common errors and issues you might encounter when using the Bool CLI, along with solutions.
+
+## Authentication issues
+
+<Accordion title="Error: No API key configured">
+  **Error message:**
+  ```
+  ✖ No API key configured. Run: bool auth login
+  ```
+  
+  **Cause:** You're trying to run a command that requires authentication, but no API key is set.
+  
+  **Solution:**
+  1. Run `bool auth login` and enter your API key when prompted
+  2. Or set the `BOOL_API_KEY` environment variable:
+     ```bash
+     export BOOL_API_KEY="your-api-key"
+     ```
+  
+  Get your API key at [bool.com/settings/api](https://bool.com/settings/api).
+</Accordion>
+
+<Accordion title="Error: Invalid or expired API key (401)">
+  **Error message:**
+  ```
+  ✖ API error: 401
+  ```
+  
+  **Cause:** Your API key is invalid, expired, or has been revoked.
+  
+  **Solution:**
+  1. Generate a new API key at [bool.com/settings/api](https://bool.com/settings/api)
+  2. Update your stored key:
+     ```bash
+     bool auth login
+     # Enter your new API key
+     ```
+  3. Verify it works:
+     ```bash
+     bool auth status
+     ```
+  
+  If using `BOOL_API_KEY` environment variable, make sure it's set correctly:
+  ```bash
+  echo $BOOL_API_KEY
+  # Should show your API key
+  ```
+</Accordion>
+
+<Accordion title="Which API key is being used?">
+  **Question:** I have multiple API keys configured. How do I know which one is being used?
+  
+  **Solution:**
+  Run the auth status command to see the active key:
+  ```bash
+  bool auth status
+  ```
+  
+  This will show a masked version of your API key (e.g., `bool_123...abc`) and verify connectivity.
+  
+  Remember the precedence order:
+  1. `BOOL_API_KEY` environment variable (highest priority)
+  2. Stored key in `~/.config/bool-cli/config.json`
+  
+  See the implementation in `src/utils/config.js:21-23`.
+</Accordion>
+
+## API connectivity
+
+<Accordion title="Error: API health check failed">
+  **Error message:**
+  ```
+  ✖ API health check failed: fetch failed
+  ```
+  
+  **Cause:** Cannot connect to the Bool API. This could be a network issue, firewall, or the API being down.
+  
+  **Solution:**
+  1. Check your internet connection
+  2. Verify you can reach bool.com:
+     ```bash
+     curl https://bool.com/api/health/
+     ```
+  3. Check if a proxy or firewall is blocking requests
+  4. If using a custom `BOOL_API_URL`, verify it's correct:
+     ```bash
+     echo $BOOL_API_URL
+     # Should be https://bool.com/api (or your custom URL)
+     ```
+</Accordion>
+
+<Accordion title="Error: Request timeout">
+  **Error message:**
+  ```
+  ✖ The operation was aborted
+  ```
+  
+  **Cause:** The API request took longer than 30 seconds and was aborted.
+  
+  **Solution:**
+  1. Check your internet connection speed
+  2. Try deploying fewer files at once
+  3. Use the `--exclude` flag to skip large or unnecessary files:
+     ```bash
+     bool deploy --exclude "dist/*" --exclude "*.log"
+     ```
+  4. For large projects, use `.boolignore` to permanently exclude files
+  
+  The timeout is set in `src/utils/api.js` and `src/commands/shipit.js:62`.
+</Accordion>
+
+## File deployment issues
+
+<Accordion title="Error: No files found to deploy">
+  **Error message:**
+  ```
+  ✖ No files found to deploy.
+  ```
+  
+  **Cause:** After applying ignore patterns, there are no files left to deploy.
+  
+  **Solution:**
+  1. Check your `.boolignore` file for overly broad patterns
+  2. List files in your directory to see what's available:
+     ```bash
+     ls -la
+     ```
+  3. Verify you're in the correct directory:
+     ```bash
+     pwd
+     ```
+  4. Remember that binary files are automatically excluded. Check `src/utils/files.js:7-14` for the list.
+  5. Try deploying a specific directory:
+     ```bash
+     bool deploy src/
+     ```
+</Accordion>
+
+<Accordion title="Files are being ignored unexpectedly">
+  **Question:** My files aren't being included in the deployment.
+  
+  **Solution:**
+  1. Check the default excludes (always applied):
+     - `.git`
+     - `node_modules`
+     - `__pycache__`
+     - `.DS_Store`
+     - `.bool`
+  
+  2. Check your `.boolignore` file for patterns matching your files
+  
+  3. Temporarily remove `.boolignore` to test:
+     ```bash
+     mv .boolignore .boolignore.bak
+     bool deploy
+     mv .boolignore.bak .boolignore
+     ```
+  
+  4. Use specific exclude flags to override:
+     ```bash
+     bool deploy --exclude "tests/*"
+     ```
+  
+  See [Exclusion patterns](/guides/exclusion-patterns) for details.
+</Accordion>
+
+<Accordion title="Binary files aren't being uploaded">
+  **Question:** My images/PDFs aren't showing up in my Bool.
+  
+  **Explanation:** Binary files are handled differently than code files. They're excluded from the main deployment but can be uploaded separately.
+  
+  **Solution:**
+  The CLI automatically uploads supported binary files after deployment. Supported types (from `src/utils/upload.js:23-27`):
+  - Images: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
+  - Documents: `.pdf`, `.csv`, `.txt`, `.json`, `.xml`
+  - Office files: `.xls`, `.xlsx`, `.doc`, `.docx`
+  
+  **Limitations:**
+  - Maximum file size: 5MB per file
+  - Requires `BOOL_API_KEY` to be configured
+  - Files larger than 5MB will be skipped with a warning
+  
+  **Troubleshooting:**
+  1. Check that your file extension is in the supported list
+  2. Verify file size:
+     ```bash
+     ls -lh path/to/file.pdf
+     ```
+  3. Check for upload warnings in the deploy output
+  4. Ensure API key is configured:
+     ```bash
+     bool auth status
+     ```
+</Accordion>
+
+## File upload errors
+
+<Accordion title="Warning: No API key configured — skipping file uploads">
+  **Warning message:**
+  ```
+  ⚠ No API key configured — skipping file uploads. Create an API key at bool.com to enable uploads.
+  ```
+  
+  **Cause:** Binary file uploads require authentication, but no API key is configured.
+  
+  **Solution:**
+  1. Run `bool auth login` to configure your API key
+  2. Or set `BOOL_API_KEY` environment variable
+  3. Re-deploy to upload the files:
+     ```bash
+     bool deploy
+     ```
+  
+  Note: This only affects binary file uploads. Code files are deployed without authentication when using `bool shipit`.
+</Accordion>
+
+<Accordion title="Error: File too large (max 5MB)">
+  **Error message:**
+  ```
+  ✖ image.png: File too large (max 5MB)
+  ```
+  
+  **Cause:** Individual files larger than 5MB cannot be uploaded (see `src/utils/upload.js:29`).
+  
+  **Solution:**
+  1. Compress or optimize the file to reduce size
+  2. For images, use compression tools:
+     ```bash
+     # Using ImageOptim, tinypng.com, or similar
+     ```
+  3. Host large files externally and link to them
+  4. Add the file to `.boolignore` to skip it:
+     ```text .boolignore
+     large-file.pdf
+     ```
+</Accordion>
+
+<Accordion title="Error: Unsupported file type (415)">
+  **Error message:**
+  ```
+  ✖ file.xyz: Unsupported file type
+  ```
+  
+  **Cause:** The file extension is not in the list of uploadable types.
+  
+  **Solution:**
+  1. Convert the file to a supported format if possible
+  2. Check the supported extensions in `src/utils/upload.js:23-27`
+  3. Host the file externally and link to it from your Bool
+  4. Add to `.boolignore` if you don't need it deployed:
+     ```text .boolignore
+     *.xyz
+     ```
+</Accordion>
+
+## Project configuration
+
+<Accordion title="Error: Provide a slug or run from a directory with a .bool/config file">
+  **Error message:**
+  ```
+  ✖ Provide a slug or run from a directory with a .bool/config file
+  ```
+  
+  **Cause:** You're running a command that needs a Bool slug, but:
+  - You didn't provide one as an argument
+  - You're not in a directory with a `.bool/config` file
+  
+  **Solution:**
+  1. Provide the slug explicitly:
+     ```bash
+     bool show my-slug
+     bool deploy my-slug
+     ```
+  
+  2. Or initialize the project first:
+     ```bash
+     # Create a new Bool (creates .bool/config)
+     bool create "My Project"
+     
+     # Or link to existing Bool
+     bool show my-existing-slug
+     ```
+  
+  The `.bool/config` file is created automatically when you create or show a Bool (see `src/utils/config.js:47-54`).
+</Accordion>
+
+<Accordion title="Lost my Bool slug">
+  **Question:** I deployed a Bool but lost the slug. How do I find it?
+  
+  **Solution:**
+  1. If you're in the project directory, check `.bool/config`:
+     ```bash
+     cat .bool/config
+     ```
+  
+  2. List all your Bools:
+     ```bash
+     bool list
+     ```
+  
+  3. For anonymous Bools created with `bool shipit`, the slug is saved in `.bool/config` in the directory you shipped from.
+</Accordion>
+
+## Validation errors
+
+<Accordion title="Error: Invalid visibility">
+  **Error message:**
+  ```
+  ✖ Invalid visibility "pubic". Must be one of: private, team, unlisted, public
+  ```
+  
+  **Cause:** Typo or invalid value for the `--visibility` flag.
+  
+  **Solution:**
+  Use one of the valid visibility values:
+  - `private` - Only you can access
+  - `team` - Your team members can access
+  - `unlisted` - Anyone with the link can access
+  - `public` - Listed publicly and searchable
+  
+  ```bash
+  bool update my-slug --visibility public
+  ```
+  
+  See the validation in `src/commands/bools.js:48-54`.
+</Accordion>
+
+<Accordion title="Error: Invalid limit">
+  **Error message:**
+  ```
+  ✖ Invalid limit "abc". Must be a positive integer.
+  ```
+  
+  **Cause:** The `--limit` flag must be a number greater than 0.
+  
+  **Solution:**
+  ```bash
+  bool list --limit 10
+  bool list --limit 50
+  ```
+</Accordion>
+
+## Scripting and automation
+
+<Accordion title="JSON parsing errors">
+  **Question:** I'm getting JSON parse errors when using `--json` in scripts.
+  
+  **Solution:**
+  1. Remember that errors go to stderr, not stdout. Capture them separately:
+     ```bash
+     OUTPUT=$(bool show my-slug --json 2>error.log)
+     if [ $? -eq 0 ]; then
+       echo "$OUTPUT" | jq '.'
+     else
+       cat error.log
+     fi
+     ```
+  
+  2. Check the exit code before parsing:
+     ```bash
+     if bool deploy --json > output.json; then
+       jq '.version_number' output.json
+     else
+       echo "Deployment failed"
+     fi
+     ```
+  
+  3. Only successful responses output JSON. Errors are plain text on stderr.
+</Accordion>
+
+<Accordion title="CI/CD authentication failing">
+  **Question:** The CLI works locally but fails in CI/CD.
+  
+  **Solution:**
+  1. Verify the secret is named exactly `BOOL_API_KEY`
+  2. Check that it's being passed to the environment:
+     ```yaml
+     env:
+       BOOL_API_KEY: ${{ secrets.BOOL_API_KEY }}
+     ```
+  3. Add debug output (masked):
+     ```bash
+     if [ -n "$BOOL_API_KEY" ]; then
+       echo "API key is set"
+     else
+       echo "API key is NOT set"
+       exit 1
+     fi
+     ```
+  4. Test the connection:
+     ```bash
+     bool auth status
+     ```
+</Accordion>
+
+## Performance issues
+
+<Accordion title="Deployment is very slow">
+  **Question:** Deployments are taking a long time.
+  
+  **Solution:**
+  1. Exclude unnecessary files:
+     ```bash
+     bool deploy --exclude "node_modules/*" --exclude "dist/*"
+     ```
+  
+  2. Use `.boolignore` for permanent exclusions:
+     ```text .boolignore
+     node_modules/
+     dist/
+     build/
+     *.log
+     ```
+  
+  3. Binary files are uploaded separately and may take time. Use `--no-upload` to skip them:
+     ```bash
+     bool deploy --no-upload
+     ```
+  
+  4. Check file count:
+     ```bash
+     # Count files that will be deployed
+     find . -type f | grep -v node_modules | wc -l
+     ```
+</Accordion>
+
+## Getting help
+
+<Accordion title="Where to get support">
+  If you're still experiencing issues:
+  
+  1. **Check the documentation:** Visit the [Bool CLI guides](/guides/creating-deploying) for detailed information
+  
+  2. **Review error messages carefully:** Error messages often include the solution (e.g., "Run: bool auth login")
+  
+  3. **Enable verbose output:** Some commands support additional logging
+  
+  4. **Check API status:** Visit [bool.com/status](https://bool.com/status) for service status
+  
+  5. **Contact support:** Email support@bool.com with:
+     - The command you ran
+     - The full error message
+     - Your CLI version (`bool --version`)
+     - Operating system and Node.js version
+</Accordion>
+
+## Common error reference
+
+Quick reference of error messages and their locations in source code:
+
+| Error | Location | Cause |
+|-------|----------|-------|
+| No API key configured | `src/utils/api.js:8` | Missing authentication |
+| Not a directory | `src/commands/versions.js:72` | Invalid path argument |
+| Provide a slug | `src/commands/bools.js:33` | Missing Bool identifier |
+| Invalid visibility | `src/commands/bools.js:51` | Bad visibility value |
+| Invalid limit | `src/commands/bools.js:42` | Bad limit value |
+| File too large | `src/utils/upload.js:167` | File over 5MB |
+| Unsupported file type | `src/utils/upload.js:168` | Unsupported extension |
+
+## See also
+
+- [Environment variables](/guides/environment-variables) - Configure API access
+- [Exclusion patterns](/guides/exclusion-patterns) - Control which files are deployed
+- [JSON output](/guides/json-output) - Scripting and automation

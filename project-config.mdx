@@ -1,0 +1,478 @@
+---
+title: Project configuration
+description: Understand and manage project-level configuration with .bool/config
+---
+
+Project-level configuration is stored in `.bool/config` and enables slug-less commands by associating a directory with a specific Bool. This allows you to run commands like `bool deploy` without specifying the slug each time.
+
+## Overview
+
+The `.bool/config` file stores metadata about the Bool associated with a directory. This file is automatically created and updated by various CLI commands.
+
+### Purpose
+
+From the source code (`src/utils/config.js:35-36`):
+
+```javascript
+// Project-level config: <dir>/.bool/config
+// Stores { slug, name } for the bool associated with a directory.
+```
+
+The project config enables:
+- Running commands without specifying the slug
+- Maintaining consistent Bool associations across deployments
+- Tracking anonymous Bool secrets for updates
+- Automatic slug resolution for team workflows
+
+## File structure
+
+### Location
+
+The project configuration is stored at:
+
+```
+.bool/config
+```
+
+Relative to your project directory.
+
+### Format
+
+The file uses JSON format with the following fields:
+
+```json
+{
+  "slug": "my-bool-xyz123",
+  "name": "My Project",
+  "secret": "optional-secret-for-anonymous-bools"
+}
+```
+
+<Info>
+  The file is automatically created and managed by the CLI. You typically don't need to edit it manually.
+</Info>
+
+## Configuration fields
+
+<Tabs>
+  <Tab title="slug">
+    **Type**: String
+
+    **Description**: The unique identifier for your Bool
+
+    **Example**: `"my-project-a1b2c3"`
+
+    **Purpose**: Allows commands to identify which Bool to operate on without requiring the slug argument
+
+    ```json
+    {
+      "slug": "my-project-a1b2c3"
+    }
+    ```
+
+    When this is set, you can run:
+    ```bash
+    bool deploy  # Instead of: bool deploy my-project-a1b2c3
+    ```
+  </Tab>
+
+  <Tab title="name">
+    **Type**: String
+
+    **Description**: The human-readable name of your Bool
+
+    **Example**: `"My Awesome Project"`
+
+    **Purpose**: Provides a friendly name that's synced with the Bool platform
+
+    ```json
+    {
+      "slug": "my-project-a1b2c3",
+      "name": "My Awesome Project"
+    }
+    ```
+
+    <Note>
+      The name is automatically synced when running commands like `show`, `update`, `deploy`, and `pull`.
+    </Note>
+  </Tab>
+
+  <Tab title="secret">
+    **Type**: String (optional)
+
+    **Description**: Secret token for updating anonymous Bools created with `bool shipit`
+
+    **Example**: `"anon-secret-xyz789"`
+
+    **Purpose**: Allows you to update anonymous Bools without authentication
+
+    ```json
+    {
+      "slug": "anon-bool-xyz",
+      "name": "Quick Demo",
+      "secret": "anon-secret-xyz789"
+    }
+    ```
+
+    <Warning>
+      The secret is only set for anonymous Bools. Authenticated Bools use your API key instead.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## When it's created
+
+The `.bool/config` file is automatically created or updated by these commands:
+
+<Steps>
+  <Step title="bool shipit">
+    Creates `.bool/config` when shipping files to a new or existing anonymous Bool.
+
+    From the source code (`src/commands/shipit.js:78-80`):
+    ```javascript
+    const configData = { slug: resultSlug, name: resultName };
+    if (!isUpdate && data.secret) configData.secret = data.secret;
+    writeProjectConfig(absDir, configData);
+    ```
+
+    **Example**:
+    ```bash
+    bool shipit
+    # Creates .bool/config with slug, name, and secret
+    ```
+  </Step>
+
+  <Step title="bool deploy">
+    Creates or updates `.bool/config` when deploying files.
+
+    From the source code (`src/commands/versions.js:111`):
+    ```javascript
+    writeProjectConfig(absDir, { slug, ...(data.name ? { name: data.name } : {}) });
+    ```
+
+    **Example**:
+    ```bash
+    bool deploy my-bool
+    # Creates .bool/config with slug and name
+    ```
+  </Step>
+
+  <Step title="bool pull">
+    Creates `.bool/config` when pulling files from a Bool.
+
+    From the source code (`src/commands/versions.js:165`):
+    ```javascript
+    writeProjectConfig(outDir, { slug, ...(data.name ? { name: data.name } : {}) });
+    ```
+
+    **Example**:
+    ```bash
+    bool pull my-bool
+    # Creates .bool/config in the output directory
+    ```
+  </Step>
+
+  <Step title="bool show">
+    Updates `.bool/config` when viewing Bool details.
+
+    From the source code (`src/commands/bools.js:101-104`):
+    ```javascript
+    const projConfig = readProjectConfig(process.cwd());
+    if (!projConfig.slug || projConfig.slug === data.slug) {
+      writeProjectConfig(process.cwd(), { slug: data.slug, name: data.name });
+    }
+    ```
+
+    **Example**:
+    ```bash
+    bool show my-bool
+    # Updates .bool/config if it doesn't exist or matches the Bool
+    ```
+  </Step>
+</Steps>
+
+## How it enables slug-less commands
+
+Many CLI commands accept an optional slug argument that can be read from `.bool/config` if not provided.
+
+### Command resolution
+
+From the source code (`src/commands/bools.js:24-28`):
+
+```javascript
+function resolveSlug(slugArg) {
+  if (slugArg) return slugArg;
+  const projConfig = readProjectConfig(process.cwd());
+  return projConfig.slug || null;
+}
+```
+
+### Commands that support slug resolution
+
+These commands can read the slug from `.bool/config`:
+
+<CodeGroup>
+```bash bool deploy
+# With slug argument
+bool deploy my-project
+
+# Without slug (reads from .bool/config)
+bool deploy
+```
+
+```bash bool show
+# With slug argument
+bool show my-project
+
+# Without slug (reads from .bool/config)
+bool show
+```
+
+```bash bool update
+# With slug argument
+bool update my-project --name "New Name"
+
+# Without slug (reads from .bool/config)
+bool update --name "New Name"
+```
+
+```bash bool pull
+# With slug argument
+bool pull my-project
+
+# Without slug (reads from .bool/config)
+bool pull
+```
+
+```bash bool versions
+# With slug argument
+bool versions my-project
+
+# Without slug (reads from .bool/config)
+bool versions
+```
+</CodeGroup>
+
+### Error handling
+
+If no slug is provided and `.bool/config` doesn't exist or doesn't contain a slug:
+
+```bash
+$ bool deploy
+✖ Provide a slug or run from a directory with a .bool/config file
+```
+
+From the source code (`src/commands/bools.js:30-36`):
+
+```javascript
+function requireSlug(slugArg) {
+  const slug = resolveSlug(slugArg);
+  if (!slug) {
+    error('Provide a slug or run from a directory with a .bool/config file');
+    process.exit(1);
+  }
+  return slug;
+}
+```
+
+## Best practices
+
+### Add to .gitignore
+
+<Warning>
+  For anonymous Bools with secrets, add `.bool/config` to your `.gitignore` to prevent committing the secret to version control.
+</Warning>
+
+```bash
+# .gitignore
+.bool/
+```
+
+**When to ignore**:
+- Anonymous Bools (contains `secret` field)
+- Personal development Bools
+- Temporary or experimental Bools
+
+**When to commit**:
+- Team projects where everyone should deploy to the same Bool
+- Open source projects with a shared Bool
+- Production Bools managed by the team
+
+### Team workflows
+
+For team projects, commit `.bool/config` to share the Bool association:
+
+```json
+{
+  "slug": "team-project-prod",
+  "name": "Team Project Production"
+}
+```
+
+This allows all team members to run:
+
+```bash
+git clone <repository>
+cd <repository>
+bool deploy  # Automatically deploys to the team Bool
+```
+
+### Multiple environments
+
+Manage different Bools for different environments:
+
+<CodeGroup>
+```bash Production
+# .bool/config (production)
+{
+  "slug": "my-app-prod",
+  "name": "My App Production"
+}
+```
+
+```bash Staging
+# .bool/config.staging
+{
+  "slug": "my-app-staging",
+  "name": "My App Staging"
+}
+```
+</CodeGroup>
+
+Deploy to different environments:
+
+```bash
+# Deploy to production
+bool deploy
+
+# Deploy to staging
+cp .bool/config.staging .bool/config
+bool deploy
+```
+
+### Anonymous Bool secrets
+
+The `secret` field is automatically set when creating anonymous Bools with `bool shipit`:
+
+```bash
+bool shipit
+# Creates .bool/config with secret
+```
+
+From the source code (`src/commands/shipit.js:43-50`):
+
+```javascript
+const secret = projConfig.secret || null;
+
+let url, body;
+if (isUpdate) {
+  url = `${baseUrl}/api/bools/${slug}/versions-anonymous/`;
+  body = { files };
+  if (opts.message) body.commit_message = opts.message;
+  if (secret) body.secret = secret;
+}
+```
+
+The secret allows subsequent `bool shipit` commands to update the same anonymous Bool.
+
+<Info>
+  Keep the secret secure. Anyone with the secret can update your anonymous Bool.
+</Info>
+
+## Reading and writing config
+
+The CLI provides helper functions for managing project config (`src/utils/config.js:38-54`):
+
+### Reading config
+
+```javascript
+export function readProjectConfig(dir) {
+  try {
+    const configPath = path.join(dir, '.bool', 'config');
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+```
+
+### Writing config
+
+```javascript
+export function writeProjectConfig(dir, data) {
+  const configDir = path.join(dir, '.bool');
+  fs.mkdirSync(configDir, { recursive: true });
+  const configPath = path.join(configDir, 'config');
+  const existing = readProjectConfig(dir);
+  const merged = { ...existing, ...data };
+  fs.writeFileSync(configPath, JSON.stringify(merged, null, 2) + '\n');
+}
+```
+
+<Note>
+  The `writeProjectConfig` function merges new data with existing config, preserving fields that aren't being updated.
+</Note>
+
+## Troubleshooting
+
+### Config not found
+
+If you see:
+
+```
+✖ Provide a slug or run from a directory with a .bool/config file
+```
+
+**Solutions**:
+
+1. **Provide the slug explicitly**:
+   ```bash
+   bool deploy my-bool-slug
+   ```
+
+2. **Create the config** by running a command that generates it:
+   ```bash
+   bool show my-bool-slug  # Creates .bool/config
+   bool deploy             # Now works without slug
+   ```
+
+3. **Check you're in the right directory**:
+   ```bash
+   ls .bool/config  # Should exist in project root
+   ```
+
+### Incorrect slug in config
+
+To change the Bool associated with a directory:
+
+```bash
+# Option 1: Manually edit .bool/config
+vim .bool/config
+
+# Option 2: Run show with the new slug
+bool show new-slug-here
+
+# Option 3: Delete and recreate
+rm -rf .bool
+bool deploy new-slug-here
+```
+
+### Secret not working for anonymous Bools
+
+If updating an anonymous Bool fails:
+
+1. **Check the secret exists** in `.bool/config`:
+   ```bash
+   cat .bool/config | jq .secret
+   ```
+
+2. **Verify you're updating the correct Bool**:
+   ```bash
+   cat .bool/config | jq .slug
+   ```
+
+3. **The secret may have expired** - create a new anonymous Bool:
+   ```bash
+   rm -rf .bool
+   bool shipit
+   ```

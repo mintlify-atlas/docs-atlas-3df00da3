@@ -1,0 +1,59 @@
+---
+title: Command reference
+description: Complete reference for all Bool CLI commands
+---
+
+The Bool CLI provides commands for managing your Bools (sites), deploying versions, and working with authentication.
+
+## Command groups
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/commands/auth">
+    Log in and manage your API credentials
+  </Card>
+  <Card title="Bool management" icon="cube" href="/commands/bools">
+    Create, update, list, and delete Bools
+  </Card>
+  <Card title="Versions & deployment" icon="rocket" href="/commands/versions">
+    Deploy new versions and view version history
+  </Card>
+  <Card title="Ship it" icon="paper-plane" href="/commands/shipit">
+    Create anonymous Bools instantly
+  </Card>
+  <Card title="Agent skill" icon="robot" href="/commands/skill">
+    Install the Bool CLI skill for AI agents
+  </Card>
+</CardGroup>
+
+## Common patterns
+
+### JSON output
+
+Most commands support a `--json` flag for machine-readable output:
+
+```bash
+bool list --json
+bool show my-site --json
+bool versions my-site --json
+```
+
+### Slug resolution
+
+Many commands accept an optional `[slug]` argument. If omitted, the CLI reads the slug from `.bool/config` in the current directory:
+
+```bash
+# Explicit slug
+bool show my-site
+bool deploy my-site
+
+# Implicit slug (reads from .bool/config)
+cd my-project
+bool show
+bool deploy
+```
+
+The `.bool/config` file is automatically created and updated when you create, deploy, or pull a Bool.
+
+### Exit codes
+
+Commands exit with code `0` on success and `1` on error.

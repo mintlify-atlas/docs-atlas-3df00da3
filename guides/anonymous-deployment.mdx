@@ -1,0 +1,300 @@
+---
+title: Anonymous deployment
+description: Deploy Bools without an API key using the shipit command
+---
+
+The `bool shipit` command lets you create and deploy Bools without authentication. Perfect for quick prototypes, sharing code snippets, or when you don't have an API key configured.
+
+## How anonymous deployment works
+
+<Card title="No authentication required" icon="rocket">
+  Unlike `bool deploy`, the `shipit` command doesn't require an API key. It creates anonymous Bools that you can update using a secret token stored locally.
+</Card>
+
+## Creating your first anonymous Bool
+
+<Steps>
+  <Step title="Navigate to your project">
+    Go to the directory you want to deploy:
+
+    ```bash
+    cd ~/projects/quick-demo
+    ```
+  </Step>
+
+  <Step title="Run shipit">
+    Deploy with a single command:
+
+    ```bash
+    bool shipit
+    ```
+
+    The CLI creates an anonymous Bool and deploys your files:
+
+    ```bash
+    https://abc123def.bool01.com
+    ✔ Shipped "quick-demo" (5 files)
+      https://abc123def.bool01.com
+      slug: abc123def
+    ```
+
+    <Note>
+      The live URL is printed to stdout, making it easy to capture in scripts: `URL=$(bool shipit)`
+    </Note>
+  </Step>
+
+  <Step title="View the .bool/config file">
+    The CLI creates a local config file to track your anonymous Bool:
+
+    ```json .bool/config
+    {
+      "slug": "abc123def",
+      "name": "quick-demo",
+      "secret": "anon_sk_XyZ789..."
+    }
+    ```
+
+    <Warning>
+      Keep this file secure. The `secret` token is the only way to update your anonymous Bool. Don't commit it to version control.
+    </Warning>
+  </Step>
+</Steps>
+
+## Updating an anonymous Bool
+
+Once you've created an anonymous Bool, subsequent `bool shipit` commands update it:
+
+```bash
+bool shipit
+```
+
+```bash
+https://abc123def.bool01.com
+✔ Updated v2 (5 files)
+  https://abc123def.bool01.com
+  slug: abc123def
+```
+
+The CLI reads the slug and secret from `.bool/config` and deploys a new version to the same Bool.
+
+### Adding commit messages
+
+Document your updates with commit messages:
+
+```bash
+bool shipit -m "Fixed responsive layout"
+```
+
+```bash
+https://abc123def.bool01.com
+✔ Updated v3 (5 files)
+  https://abc123def.bool01.com
+  slug: abc123def
+```
+
+## Customizing the Bool name
+
+By default, `shipit` uses your directory name as the Bool name. Override this with the `--name` flag:
+
+```bash
+bool shipit --name "My Demo App"
+```
+
+```bash
+https://xyz789abc.bool01.com
+✔ Shipped "My Demo App" (5 files)
+  https://xyz789abc.bool01.com
+  slug: xyz789abc
+```
+
+## Deploying from different directories
+
+Specify a directory path to deploy files from anywhere:
+
+```bash
+bool shipit ./dist
+```
+
+```bash
+bool shipit ~/projects/other-app
+```
+
+## Updating an existing anonymous Bool from elsewhere
+
+If you have the slug from a previous deployment, you can update it from a different location:
+
+```bash
+bool shipit --slug abc123def
+```
+
+<Warning>
+  This only works if the `.bool/config` file in the target directory contains the matching secret token. You cannot update someone else's anonymous Bool.
+</Warning>
+
+## File handling
+
+`shipit` follows the same file handling rules as `bool deploy`:
+
+<CardGroup cols={2}>
+  <Card title="Text files" icon="file-code">
+    Source code files (`.js`, `.html`, `.css`, etc.) are included in the deployment payload.
+  </Card>
+  <Card title="Binary files" icon="file-image">
+    Images, PDFs, and other binary files are uploaded separately (up to 5MB each).
+  </Card>
+</CardGroup>
+
+### Default ignore patterns
+
+These directories are automatically excluded:
+
+- `.git`
+- `node_modules`
+- `__pycache__`
+- `.DS_Store`
+- `.bool`
+
+Create a `.boolignore` file to exclude additional patterns:
+
+```text .boolignore
+build/
+*.log
+test/
+.env
+```
+
+### Skipping file uploads
+
+To skip binary file uploads (deploy only text files):
+
+```bash
+bool shipit --no-upload
+```
+
+## Use cases for anonymous deployment
+
+<AccordionGroup>
+  <Accordion title="Quick prototypes">
+    Deploy a proof-of-concept without setting up an account:
+
+    ```bash
+    cd prototype && bool shipit
+    ```
+
+    Share the URL with teammates for immediate feedback.
+  </Accordion>
+
+  <Accordion title="Code snippets">
+    Share code examples or demos:
+
+    ```bash
+    mkdir demo && cd demo
+    echo '<h1>Hello World</h1>' > index.html
+    bool shipit
+    ```
+  </Accordion>
+
+  <Accordion title="Temporary staging">
+    Create a temporary preview environment:
+
+    ```bash
+    npm run build && bool shipit ./dist
+    ```
+
+    No need to configure credentials or create a Bool manually.
+  </Accordion>
+
+  <Accordion title="CI/CD without credentials">
+    Deploy from CI environments without managing API keys:
+
+    ```yaml .github/workflows/deploy.yml
+    - name: Deploy anonymous preview
+      run: bool shipit --name "PR-${{ github.event.number }}"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Comparison with authenticated deployment
+
+<Tabs>
+  <Tab title="bool shipit">
+    **Pros:**
+    - No API key required
+    - One command to create and deploy
+    - Great for quick sharing
+    - Works in any environment
+
+    **Cons:**
+    - Can only update via the secret token
+    - No access to full Bool management features
+    - Limited to single-user workflows
+  </Tab>
+
+  <Tab title="bool deploy">
+    **Pros:**
+    - Full access to Bool management (update name, visibility, etc.)
+    - Multi-user collaboration
+    - Version history and detailed metadata
+    - Team features
+
+    **Cons:**
+    - Requires API key configuration
+    - Two-step process (create then deploy)
+  </Tab>
+</Tabs>
+
+## Security considerations
+
+<Warning>
+  **Protect your .bool/config file**
+  
+  The secret token in `.bool/config` is the only credential for updating your anonymous Bool. Anyone with this token can deploy new versions.
+
+  Add `.bool/` to your `.gitignore`:
+
+  ```text .gitignore
+  .bool/
+  ```
+</Warning>
+
+## Environment variables
+
+Customize the API base URL with an environment variable:
+
+```bash
+export BOOL_BASE_URL=https://staging.bool.com
+bool shipit
+```
+
+Or per command:
+
+```bash
+bool shipit --base-url https://staging.bool.com
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Not a directory">
+    Make sure you're running the command from a valid directory:
+
+    ```bash
+    cd ~/projects/my-app
+    bool shipit
+    ```
+
+    Or specify the directory explicitly:
+
+    ```bash
+    bool shipit ~/projects/my-app
+    ```
+  </Accordion>
+
+  <Accordion title="Error: No files found to deploy">
+    Check that your directory contains files and review your `.boolignore` patterns. Use `ls -la` to verify file presence.
+  </Accordion>
+
+  <Accordion title="Cannot update existing Bool">
+    Verify that `.bool/config` exists and contains a valid secret token. If you've lost the secret, you'll need to create a new anonymous Bool.
+  </Accordion>
+</AccordionGroup>

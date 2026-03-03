@@ -1,0 +1,208 @@
+---
+title: bool (bools)
+description: Create, list, update, and delete Bools
+---
+
+Commands for managing your Bools (sites). All commands support slug resolution from `.bool/config`.
+
+## bool list
+
+List your Bools.
+
+```bash
+bool list [--limit <n>] [--json]
+```
+
+**Alias:** `bool ls`
+
+<ParamField path="--limit" type="number" default="20">
+  Maximum number of Bools to display
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON instead of a table
+</ParamField>
+
+### Example output
+
+```bash
+$ bool list --limit 5
+Name           Slug          Visibility  URL                           Updated
+My Portfolio   my-portfolio  public      https://my-portfolio.bool01.com  2026-03-01T10:23:45Z
+Docs Site      docs-site     unlisted    https://docs-site.bool01.com     2026-02-28T14:12:00Z
+Internal App   internal-app  private     https://internal-app.bool01.com  2026-02-25T09:45:30Z
+```
+
+## bool create
+
+Create a new Bool.
+
+```bash
+bool create <name> [--json]
+```
+
+<ParamField path="name" type="string" required>
+  Display name for the Bool (slug will be auto-generated)
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Example
+
+```bash
+$ bool create "My New Site"
+✔ Created "My New Site" (my-new-site)
+ℹ URL: https://my-new-site.bool01.com
+```
+
+## bool show
+
+Show detailed information about a Bool, including the latest version.
+
+```bash
+bool show [slug] [--json]
+```
+
+**Aliases:** `bool get`, `bool info`
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Example output
+
+```bash
+$ bool show my-site
+ℹ Name: My Site
+ℹ Slug: my-site
+ℹ Visibility: public
+ℹ Description: My personal website
+ℹ URL: https://my-site.bool01.com
+ℹ Created: 2026-02-01T12:00:00Z
+ℹ Updated: 2026-03-01T15:30:00Z
+
+ℹ Latest version: v3
+ℹ   Files: 12
+ℹ   Message: Update homepage content
+ℹ   Created: 2026-03-01T15:30:00Z
+```
+
+<Note>
+  Running `bool show` automatically creates or updates `.bool/config` in the current directory.
+</Note>
+
+## bool update
+
+Update a Bool's metadata.
+
+```bash
+bool update [slug] [--name <name>] [--description <desc>] [--visibility <vis>] [--json]
+```
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="--name" type="string">
+  New display name
+</ParamField>
+
+<ParamField path="--description" type="string">
+  New description
+</ParamField>
+
+<ParamField path="--visibility" type="string">
+  New visibility setting. Must be one of: `private`, `team`, `unlisted`, `public`
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Visibility options
+
+<ResponseField name="private">
+  Only you can access the Bool
+</ResponseField>
+
+<ResponseField name="team">
+  Your team members can access the Bool
+</ResponseField>
+
+<ResponseField name="unlisted">
+  Anyone with the link can access the Bool, but it won't appear in public listings
+</ResponseField>
+
+<ResponseField name="public">
+  Anyone can access the Bool and it appears in public listings
+</ResponseField>
+
+### Example
+
+```bash
+$ bool update my-site --name "My Awesome Site" --visibility public
+✔ Updated "My Awesome Site" (my-site)
+```
+
+<Warning>
+  You must provide at least one of `--name`, `--description`, or `--visibility`.
+</Warning>
+
+## bool delete
+
+Delete a Bool permanently.
+
+```bash
+bool delete [slug] [-y]
+```
+
+**Alias:** `bool rm`
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="-y, --yes" type="boolean">
+  Skip confirmation prompt
+</ParamField>
+
+### Example
+
+```bash
+$ bool delete old-site
+Delete "old-site"? This cannot be undone. (y/N) y
+✔ Deleted "old-site".
+```
+
+<Warning>
+  Deletion is permanent and cannot be undone. All versions and files will be deleted.
+</Warning>
+
+## bool open
+
+Open a Bool in your default web browser.
+
+```bash
+bool open [slug]
+```
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+### Example
+
+```bash
+$ bool open my-site
+ℹ Opening https://my-site.bool01.com…
+```
+
+<Note>
+  This command uses the platform's default browser: `open` on macOS, `start` on Windows, and `xdg-open` on Linux.
+</Note>

@@ -1,0 +1,167 @@
+---
+title: bool versions
+description: Deploy versions and manage version history
+---
+
+Commands for deploying new versions and viewing version history.
+
+## bool versions
+
+List version history for a Bool.
+
+```bash
+bool versions [slug] [--json]
+```
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Example output
+
+```bash
+$ bool versions my-site
+Version  Files  Message                    Created
+v5       18     Add contact form           2026-03-03T10:00:00Z
+v4       17     Update styling             2026-03-02T15:30:00Z
+v3       12     Update homepage content    2026-03-01T15:30:00Z
+v2       10     Add about page             2026-02-15T09:00:00Z
+v1       8      Initial deployment         2026-02-01T12:00:00Z
+```
+
+## bool deploy
+
+Deploy local files as a new version. If no Bool exists, creates one automatically.
+
+```bash
+bool deploy [slug] [dir] [options]
+```
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="dir" type="string" default=".">
+  Directory to deploy
+</ParamField>
+
+<ParamField path="-m, --message" type="string">
+  Commit message describing the changes
+</ParamField>
+
+<ParamField path="--exclude" type="string">
+  Additional exclude pattern (can be used multiple times)
+</ParamField>
+
+<ParamField path="--no-upload" type="boolean">
+  Skip uploading binary/asset files
+</ParamField>
+
+<ParamField path="--all-files" type="boolean">
+  Upload all files, not just changed ones
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Example: Deploy current directory
+
+```bash
+$ bool deploy -m "Add contact form"
+ℹ Deploying 18 file(s) from /home/user/my-site…
+✔ Deployed v5 (18 files)
+ℹ Live URL: https://my-site.bool01.com
+```
+
+### Example: Deploy specific directory to new Bool
+
+```bash
+$ bool deploy ./dist -m "Initial deployment"
+ℹ Creating new Bool "dist"…
+✔ Created Bool "dist" (dist-a1b2c3)
+ℹ Deploying 25 file(s) from /home/user/project/dist…
+✔ Deployed v1 (25 files)
+ℹ Live URL: https://dist-a1b2c3.bool01.com
+```
+
+### Example: Exclude additional files
+
+```bash
+$ bool deploy --exclude "*.log" --exclude "temp/*" -m "Deploy production build"
+```
+
+<Note>
+  Files matching patterns in `.boolignore` are automatically excluded. The `--exclude` flag adds additional patterns.
+</Note>
+
+### File exclusion
+
+By default, the CLI excludes files matching patterns in:
+- `.boolignore` (custom ignore file)
+- `.gitignore` (if no `.boolignore` exists)
+- Built-in patterns: `.git/`, `.bool/`, `node_modules/`
+
+### Auto-creation behavior
+
+If you run `bool deploy` without a slug and no `.bool/config` exists:
+1. A new Bool is created automatically
+2. The Bool name defaults to the directory name
+3. `.bool/config` is created with the new slug
+4. Files are deployed as version 1
+
+## bool pull
+
+Download files from a Bool to your local machine.
+
+```bash
+bool pull [slug] [dir] [--version <n>] [--json]
+```
+
+<ParamField path="slug" type="string">
+  Bool slug (reads from `.bool/config` if omitted)
+</ParamField>
+
+<ParamField path="dir" type="string">
+  Output directory (defaults to a directory named after the slug)
+</ParamField>
+
+<ParamField path="--version" type="number">
+  Specific version number to pull (defaults to latest)
+</ParamField>
+
+<ParamField path="--json" type="boolean">
+  Output as JSON
+</ParamField>
+
+### Example: Pull latest version
+
+```bash
+$ bool pull my-site
+✔ Pulled 18 file(s) to my-site (v5)
+```
+
+### Example: Pull specific version to custom directory
+
+```bash
+$ bool pull my-site ./backup --version 3
+✔ Pulled 12 file(s) to ./backup (v3)
+```
+
+<Note>
+  Running `bool pull` automatically creates or updates `.bool/config` in the output directory.
+</Note>
+
+### Directory resolution
+
+If you provide a single argument that looks like a directory path, it's treated as the directory rather than the slug:
+
+```bash
+# These are equivalent:
+bool pull my-site ./output
+bool pull ./output  # slug read from .bool/config
+```

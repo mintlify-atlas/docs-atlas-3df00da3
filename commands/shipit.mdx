@@ -1,0 +1,160 @@
+---
+title: bool shipit
+description: Create and deploy anonymous Bools instantly
+---
+
+The `bool shipit` command creates an anonymous Bool and uploads your files in one step. Perfect for quick prototypes, demos, or sharing code without setting up authentication.
+
+## Usage
+
+```bash
+bool shipit [directory] [options]
+```
+
+<ParamField path="directory" type="string" default=".">
+  Directory to ship
+</ParamField>
+
+<ParamField path="--slug" type="string">
+  Update an existing anonymous Bool instead of creating a new one
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Bool name (defaults to directory name or value in `.bool/config`)
+</ParamField>
+
+<ParamField path="-m, --message" type="string">
+  Commit message (used when updating an existing Bool)
+</ParamField>
+
+<ParamField path="--base-url" type="string">
+  Base API URL (or set `BOOL_BASE_URL` environment variable)
+</ParamField>
+
+<ParamField path="--no-upload" type="boolean">
+  Skip uploading binary/asset files
+</ParamField>
+
+## Anonymous Bools
+
+Anonymous Bools don't require authentication or an API key. They:
+- Are created instantly without an account
+- Use a secret token stored in `.bool/config` for updates
+- Can be updated by anyone with the secret
+- Are perfect for quick sharing and prototypes
+
+<Warning>
+  Keep your `.bool/config` file private. Anyone with the secret can update your anonymous Bool.
+</Warning>
+
+## Examples
+
+### Ship current directory
+
+```bash
+$ bool shipit
+https://abc123.bool01.com
+✔ Shipped "my-project" (5 files)
+  https://abc123.bool01.com
+  slug: abc123
+```
+
+The URL is printed to stdout (first line), making it easy to capture:
+
+```bash
+URL=$(bool shipit)
+echo "Live at: $URL"
+```
+
+### Ship specific directory with custom name
+
+```bash
+$ bool shipit ./dist --name "My Demo App"
+https://xyz789.bool01.com
+✔ Shipped "My Demo App" (12 files)
+  https://xyz789.bool01.com
+  slug: xyz789
+```
+
+### Update an existing anonymous Bool
+
+After the first run, `.bool/config` is created with the slug and secret. Subsequent runs in the same directory automatically update the same Bool:
+
+```bash
+$ bool shipit -m "Update homepage"
+https://abc123.bool01.com
+✔ Updated v2 (5 files)
+  https://abc123.bool01.com
+  slug: abc123
+```
+
+You can also explicitly specify the slug:
+
+```bash
+$ bool shipit --slug abc123 -m "Update from different location"
+```
+
+### Ship without uploading assets
+
+```bash
+$ bool shipit --no-upload
+https://abc123.bool01.com
+✔ Shipped "my-project" (5 files)
+  https://abc123.bool01.com
+  slug: abc123
+```
+
+## How it works
+
+1. **First run:** Creates a new anonymous Bool and saves the slug + secret to `.bool/config`
+2. **Subsequent runs:** Detects existing config and creates a new version instead
+3. **Output:** URL is printed to stdout, status messages to stderr
+
+### The .bool/config file
+
+After running `bool shipit`, a `.bool/config` file is created:
+
+```json
+{
+  "slug": "abc123",
+  "name": "my-project",
+  "secret": "sk_anon_..."
+}
+```
+
+The secret token allows updates without authentication.
+
+<Note>
+  Add `.bool/` to your `.gitignore` to avoid committing the secret.
+</Note>
+
+## Comparison with bool deploy
+
+<AccordionGroup>
+  <Accordion title="When to use bool shipit">
+    - Quick prototypes and demos
+    - Sharing code without creating an account
+    - One-off deployments
+    - CI/CD pipelines that need temporary preview URLs
+  </Accordion>
+  
+  <Accordion title="When to use bool deploy">
+    - Production sites
+    - Team collaboration
+    - When you need access control and permissions
+    - When you want to manage multiple Bools from one account
+  </Accordion>
+</AccordionGroup>
+
+## Environment variables
+
+<ParamField path="BOOL_BASE_URL" type="string" default="https://bool.com">
+  Override the base API URL (useful for testing or self-hosted instances)
+</ParamField>
+
+### Example
+
+```bash
+export BOOL_BASE_URL=https://api.bool.dev
+bool shipit
+```

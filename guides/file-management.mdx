@@ -1,0 +1,478 @@
+---
+title: File management
+description: Learn how the Bool CLI handles file uploads, binary detection, and directory structures
+---
+
+The Bool CLI intelligently manages different file types during deployment, handling text and binary files differently to optimize performance and reliability.
+
+## How file deployment works
+
+<Steps>
+  <Step title="Scan directory">
+    The CLI recursively scans your project directory, respecting ignore patterns.
+  </Step>
+
+  <Step title="Classify files">
+    Files are classified as text (included in deployment payload) or binary (uploaded separately).
+  </Step>
+
+  <Step title="Deploy text files">
+    Source code and text files are sent in the initial deployment request.
+  </Step>
+
+  <Step title="Upload binary files">
+    Images, PDFs, and other binary files are uploaded individually after deployment.
+  </Step>
+</Steps>
+
+## Text vs binary files
+
+The CLI automatically detects file types based on extensions:
+
+<Tabs>
+  <Tab title="Text files">
+    These files are included in the deployment payload:
+
+    - Source code: `.js`, `.ts`, `.jsx`, `.tsx`, `.py`, `.rb`, `.php`, etc.
+    - Markup: `.html`, `.xml`, `.md`
+    - Styles: `.css`, `.scss`, `.sass`, `.less`
+    - Config: `.json`, `.yaml`, `.yml`, `.toml`
+    - Documentation: `.txt`, `.md`, `.rst`
+
+    Text files are read as UTF-8 and included in the API request to create a new version.
+  </Tab>
+
+  <Tab title="Binary files">
+    These files are uploaded separately:
+
+    **Images:**
+    - `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.svg`
+
+    **Documents:**
+    - `.pdf`, `.doc`, `.docx`, `.xls`, `.xlsx`
+
+    **Media:**
+    - `.mp3`, `.mp4`, `.wav`, `.ogg`, `.webm`, `.avi`, `.mov`
+
+    **Fonts:**
+    - `.woff`, `.woff2`, `.ttf`, `.eot`, `.otf`
+
+    **Archives:**
+    - `.zip`, `.gz`, `.tar`, `.rar`, `.7z`
+
+    **Executables:**
+    - `.exe`, `.dll`, `.so`, `.dylib`
+
+    Binary files are uploaded via multipart form data after the version is created.
+  </Tab>
+</Tabs>
+
+## Deploying files
+
+Deploy all files in your current directory:
+
+```bash
+bool deploy
+```
+
+The CLI shows progress for both text and binary files:
+
+```bash
+ℹ Deploying 15 file(s) from /home/user/projects/my-app…
+✔ Deployed v3 (15 files)
+ℹ Live URL: https://my-app.bool01.com
+ℹ Uploading 3 file(s)…
+✔   logo.png → https://bool.com/files/abc123/logo.png
+✔   cover.jpg → https://bool.com/files/abc123/cover.jpg
+✔   document.pdf → https://bool.com/files/abc123/document.pdf
+ℹ File uploads: 3 uploaded
+```
+
+### Deploy from a specific directory
+
+Specify any directory path:
+
+```bash
+bool deploy ./dist
+```
+
+```bash
+bool deploy ~/projects/other-app
+```
+
+### Skip binary uploads
+
+Deploy only text files (skip binary uploads):
+
+```bash
+bool deploy --no-upload
+```
+
+```bash
+ℹ Deploying 15 file(s) from /home/user/projects/my-app…
+✔ Deployed v3 (15 files)
+ℹ Live URL: https://my-app.bool01.com
+```
+
+### Force upload all files
+
+By default, the CLI only uploads changed binary files. Force upload all binary files:
+
+```bash
+bool deploy --all-files
+```
+
+## Pulling files
+
+Download files from your Bool:
+
+```bash
+bool pull
+```
+
+```bash
+✔ Pulled 15 file(s) to my-app (v3)
+```
+
+Files are downloaded to a directory named after your Bool's slug, preserving the original directory structure.
+
+### Pull to a specific directory
+
+```bash
+bool pull ./downloaded
+```
+
+```bash
+✔ Pulled 15 file(s) to /home/user/downloaded (v3)
+```
+
+### Pull a specific version
+
+```bash
+bool pull --version 2
+```
+
+```bash
+✔ Pulled 12 file(s) to my-app (v2)
+```
+
+## File size limits
+
+Binary files have a 5MB size limit:
+
+<Warning>
+  Files larger than 5MB are skipped during upload:
+
+  ```bash
+  ℹ Uploading 4 file(s)…
+  ✔   logo.png → https://bool.com/files/abc123/logo.png
+  ✔   cover.jpg → https://bool.com/files/abc123/cover.jpg
+  ⚠ Skipped 2 file(s) over 5MB: video.mp4, large-image.png
+  ```
+
+  Compress or optimize large files before deploying.
+</Warning>
+
+<Note>
+  Text files don't have individual size limits, but extremely large text files may cause slow deployments.
+</Note>
+
+## Directory structure preservation
+
+The CLI preserves your directory structure during both deploy and pull operations:
+
+```
+my-app/
+├── index.html
+├── css/
+│   ├── styles.css
+│   └── reset.css
+├── js/
+│   ├── app.js
+│   └── utils.js
+└── images/
+    ├── logo.png
+    └── hero.jpg
+```
+
+After `bool pull`, you get the exact same structure:
+
+```
+my-app/
+├── index.html
+├── css/
+│   ├── styles.css
+│   └── reset.css
+├── js/
+│   ├── app.js
+│   └── utils.js
+└── images/
+    ├── logo.png
+    └── hero.jpg
+```
+
+## Ignore patterns
+
+The CLI automatically ignores certain directories:
+
+<CardGroup cols={2}>
+  <Card title="Default ignores" icon="eye-slash">
+    - `.git`
+    - `node_modules`
+    - `__pycache__`
+    - `.DS_Store`
+    - `.bool`
+  </Card>
+  <Card title="Custom ignores" icon="file">
+    Create a `.boolignore` file to add your own patterns.
+  </Card>
+</CardGroup>
+
+### Creating a .boolignore file
+
+Use `.gitignore` syntax to exclude files and directories:
+
+```text .boolignore
+# Build outputs
+build/
+dist/
+out/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+
+# Test files
+test/
+__tests__/
+*.test.js
+
+# Documentation
+docs/
+README.md
+```
+
+### Using exclude flags
+
+Temporarily exclude patterns without editing `.boolignore`:
+
+```bash
+bool deploy --exclude '*.log' --exclude 'test/'
+```
+
+Multiple `--exclude` flags can be combined:
+
+```bash
+bool deploy --exclude 'docs/' --exclude '*.md' --exclude '.env*'
+```
+
+## Upload state tracking
+
+The CLI tracks which binary files have been uploaded to avoid redundant uploads:
+
+```json .bool/uploads.json
+{
+  "images/logo.png": {
+    "mtimeMs": 1709467200000,
+    "size": 15234
+  },
+  "images/hero.jpg": {
+    "mtimeMs": 1709467300000,
+    "size": 89456
+  }
+}
+```
+
+Files are re-uploaded only if:
+- The file is new (not in `uploads.json`)
+- The file size changed
+- The modification time is newer
+
+### Force re-upload
+
+Use `--all-files` to ignore the upload state and upload everything:
+
+```bash
+bool deploy --all-files
+```
+
+## Uploadable file types
+
+Only specific binary file types are uploaded:
+
+<Tabs>
+  <Tab title="Supported">
+    **Images:**
+    - `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
+
+    **Documents:**
+    - `.pdf`, `.csv`, `.txt`, `.json`, `.xml`
+    - `.doc`, `.docx`, `.xls`, `.xlsx`
+
+    These files are uploaded to Bool's file storage and accessible via public URLs.
+  </Tab>
+
+  <Tab title="Skipped">
+    **Not uploaded:**
+    - `.mp3`, `.mp4`, `.wav` (media files)
+    - `.zip`, `.tar`, `.gz` (archives)
+    - `.woff`, `.ttf` (fonts)
+    - `.exe`, `.dll` (executables)
+
+    These files are detected as binary but not uploaded. Include them in your deployment if they're needed, but they won't be uploaded to file storage.
+  </Tab>
+</Tabs>
+
+## Authentication for uploads
+
+File uploads require an API key:
+
+<Steps>
+  <Step title="With API key configured">
+    Binary files are uploaded automatically:
+
+    ```bash
+    bool deploy
+    ```
+
+    ```bash
+    ℹ Deploying 10 file(s)…
+    ✔ Deployed v1 (10 files)
+    ℹ Uploading 2 file(s)…
+    ✔   logo.png → https://bool.com/files/abc123/logo.png
+    ✔   hero.jpg → https://bool.com/files/abc123/hero.jpg
+    ```
+  </Step>
+
+  <Step title="Without API key">
+    Text files deploy successfully, but binary uploads are skipped:
+
+    ```bash
+    bool shipit
+    ```
+
+    ```bash
+    ✔ Shipped "my-app" (10 files)
+      https://my-app.bool01.com
+    ⚠ No API key configured — skipping file uploads.
+      Create an API key at bool.com to enable uploads.
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Configure an API key to enable binary file uploads:
+
+  ```bash
+  bool config set-api-key your_api_key_here
+  ```
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: No files found to deploy">
+    Check that your directory contains files:
+
+    ```bash
+    ls -la
+    ```
+
+    Review your `.boolignore` to ensure you're not excluding everything:
+
+    ```bash
+    cat .boolignore
+    ```
+  </Accordion>
+
+  <Accordion title="Binary files not uploading">
+    Verify you have an API key configured:
+
+    ```bash
+    bool config get-api-key
+    ```
+
+    Set your API key if missing:
+
+    ```bash
+    bool config set-api-key your_key
+    ```
+  </Accordion>
+
+  <Accordion title="File too large errors">
+    Files over 5MB are automatically skipped. Options:
+
+    1. Compress the file
+    2. Optimize images (use tools like `imageoptim` or `tinypng`)
+    3. Split large files into smaller chunks
+    4. Host large files elsewhere and reference them
+  </Accordion>
+
+  <Accordion title="File already exists">
+    This is normal. The CLI detects duplicate uploads and marks them as successful:
+
+    ```bash
+    ℹ   logo.png (already uploaded)
+    ```
+
+    The file wasn't re-uploaded, but the state was updated.
+  </Accordion>
+
+  <Accordion title="Directory structure not preserved">
+    The CLI preserves all directory structures automatically. If you're seeing flat files, you may be pulling into the wrong directory.
+
+    Specify the output directory explicitly:
+
+    ```bash
+    bool pull ./my-output-dir
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Optimize before deploying">
+    Compress images and minimize assets before deployment:
+
+    ```bash
+    npm run build    # Build optimized assets
+    bool deploy ./dist -m "Production build"
+    ```
+  </Accordion>
+
+  <Accordion title="Use .boolignore liberally">
+    Exclude unnecessary files to speed up deployments:
+
+    ```text .boolignore
+    *.log
+    test/
+    docs/
+    .env*
+    *.md
+    ```
+  </Accordion>
+
+  <Accordion title="Check file sizes">
+    Before deploying, check for large files:
+
+    ```bash
+    find . -type f -size +5M
+    ```
+
+    Optimize or exclude files that exceed the 5MB limit.
+  </Accordion>
+
+  <Accordion title="Version control your .boolignore">
+    Commit `.boolignore` to your repo so the team shares the same ignore patterns:
+
+    ```bash
+    git add .boolignore
+    git commit -m "Add Bool ignore patterns"
+    ```
+  </Accordion>
+</AccordionGroup>

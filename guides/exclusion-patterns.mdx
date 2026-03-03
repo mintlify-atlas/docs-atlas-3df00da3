@@ -1,0 +1,238 @@
+---
+title: Exclusion patterns
+description: Control which files are included in your Bool deployments using exclude flags and .boolignore files
+---
+
+The Bool CLI provides flexible ways to exclude files from your deployments. This is useful for keeping sensitive data, build artifacts, and large files out of your Bool.
+
+## Using the --exclude flag
+
+The `--exclude` flag is available on the `bool deploy` command and can be used multiple times to specify patterns:
+
+```bash
+bool deploy --exclude "*.log" --exclude "temp/*"
+```
+
+Multiple exclude patterns are combined with the default excludes and any patterns in `.boolignore`.
+
+<CodeGroup>
+```bash Exclude log files
+bool deploy --exclude "*.log"
+```
+
+```bash Exclude multiple patterns
+bool deploy --exclude "*.log" --exclude "temp/*" --exclude "build/"
+```
+
+```bash Exclude with commit message
+bool deploy --exclude "tests/*" -m "Deploy without test files"
+```
+</CodeGroup>
+
+## Using .boolignore files
+
+Create a `.boolignore` file in your project root to define patterns that should always be excluded:
+
+```text .boolignore
+# Comments are supported
+*.log
+*.tmp
+temp/
+build/
+dist/
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+```
+
+<Info>
+The `.boolignore` file uses the same syntax as `.gitignore` files, powered by the [ignore](https://www.npmjs.com/package/ignore) package.
+</Info>
+
+## Default exclusions
+
+The Bool CLI automatically excludes these directories and files from all deployments:
+
+- `.git` - Git repository data
+- `node_modules` - Node.js dependencies
+- `__pycache__` - Python bytecode cache
+- `.DS_Store` - macOS system files
+- `.bool` - Bool CLI configuration and state
+
+These defaults are defined in `src/utils/files.js:5` and cannot be overridden.
+
+## Gitignore syntax
+
+The `.boolignore` file supports standard gitignore pattern syntax:
+
+<Accordion title="Pattern matching rules">
+  - **Blank lines** are ignored and can be used for spacing
+  - **Lines starting with #** are treated as comments
+  - **Trailing spaces** are ignored unless quoted with backslash (`\ `)
+  - **`!` prefix** negates the pattern (re-includes previously excluded files)
+  - **`/` at the end** matches only directories
+  - **`/` at the start** matches paths relative to the `.boolignore` location
+  - **`*` wildcard** matches any characters except `/`
+  - **`**` wildcard** matches any characters including `/`
+  - **`?` wildcard** matches any single character except `/`
+  - **`[a-z]` ranges** match any character in the range
+</Accordion>
+
+### Pattern examples
+
+<CodeGroup>
+```text Exclude all JS files
+*.js
+```
+
+```text Exclude directory
+build/
+```
+
+```text Exclude nested files
+**/temp/*.log
+```
+
+```text Exclude except one file
+*.env
+!.env.example
+```
+
+```text Exclude from root only
+/config.json
+```
+</CodeGroup>
+
+## Binary file handling
+
+The Bool CLI automatically skips binary files during deployment. The following extensions are treated as binary and excluded from code deployments:
+
+<Accordion title="Binary file extensions">
+  **Images:** `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.ico`, `.webp`, `.svg`
+  
+  **Media:** `.mp3`, `.mp4`, `.wav`, `.ogg`, `.webm`, `.avi`, `.mov`
+  
+  **Archives:** `.pdf`, `.zip`, `.gz`, `.tar`, `.rar`, `.7z`
+  
+  **Fonts:** `.woff`, `.woff2`, `.ttf`, `.eot`, `.otf`
+  
+  **Executables:** `.exe`, `.dll`, `.so`, `.dylib`
+  
+  **Compiled:** `.pyc`, `.class`, `.o`
+</Accordion>
+
+<Note>
+Some binary files like images and PDFs can be uploaded separately. Binary files under 5MB are automatically detected and uploaded. See [File management](/guides/file-management) for details.
+</Note>
+
+## Precedence and combining patterns
+
+Exclusion patterns are combined in this order:
+
+1. **Default excludes** (always applied)
+2. **`.boolignore` patterns** (if file exists)
+3. **`--exclude` flag patterns** (if provided)
+
+Patterns from all sources are merged together. Later patterns can use the `!` prefix to re-include files excluded by earlier patterns.
+
+## Common exclusion patterns
+
+Here are some common `.boolignore` configurations for different project types:
+
+<CodeGroup>
+```text Node.js project
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+```
+
+```text Python project
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+```
+
+```text Static site
+# Build output
+public/
+.cache/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.production
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+```
+</CodeGroup>
+
+## Troubleshooting exclusions
+
+<Accordion title="Files are still being included">
+  Check that your `.boolignore` file is in the project root (same directory you run `bool deploy` from). Verify the pattern syntax matches gitignore rules. Use `--exclude` flags to test patterns before adding them to `.boolignore`.
+</Accordion>
+
+<Accordion title="Need to include a previously excluded file">
+  Use the `!` prefix to negate a pattern. For example, if `*.env` excludes all env files, add `!.env.example` on the next line to re-include that specific file.
+</Accordion>
+
+<Accordion title="Binary files aren't being uploaded">
+  Binary files are automatically excluded from code deployments but can be uploaded separately if they match the supported file types. See the upload functionality in `src/utils/upload.js:23-27` for the list of uploadable extensions.
+</Accordion>
+
+## See also
+
+- [Environment variables](/guides/environment-variables) - Learn about `BOOL_BASE_URL` and other configuration
+- [Troubleshooting](/guides/troubleshooting) - Common deployment issues and solutions

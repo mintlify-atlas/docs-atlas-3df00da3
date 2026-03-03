@@ -1,0 +1,144 @@
+---
+title: Installation
+description: Install the Bool CLI on your machine
+---
+
+## Prerequisites
+
+Before installing Bool CLI, ensure you have:
+
+- **Node.js** version 16 or higher
+- **npm**, **yarn**, or **pnpm** package manager
+
+Check your Node.js version:
+
+```bash
+node --version
+```
+
+## Install Bool CLI
+
+Install the CLI globally using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install -g bool-cli
+```
+
+```bash yarn
+yarn global add bool-cli
+```
+
+```bash pnpm
+pnpm add -g bool-cli
+```
+
+</CodeGroup>
+
+This installs the `bool` command globally on your system.
+
+## Verify installation
+
+Confirm the CLI is installed correctly:
+
+```bash
+bool --version
+```
+
+You should see output similar to:
+
+```
+0.2.4
+```
+
+View all available commands:
+
+```bash
+bool --help
+```
+
+<Note>
+The `bool` command is now available from any directory in your terminal.
+</Note>
+
+## Configuration
+
+The Bool CLI stores configuration in `~/.config/bool-cli/config.json`. This file is created automatically when you run `bool auth login` for the first time.
+
+### Project-level configuration
+
+When you deploy or ship code, Bool CLI creates a `.bool/config` file in your project directory. This file stores your Bool slug and name so you don't need to specify them with every command.
+
+<Warning>
+Add `.bool/` to your `.gitignore` to avoid committing local configuration to version control.
+</Warning>
+
+## Environment variables
+
+You can configure Bool CLI using environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|----------|
+| `BOOL_API_KEY` | Your Bool API key (alternative to `bool auth login`) | None |
+| `BOOL_API_URL` | API endpoint URL | `https://bool.com/api` |
+| `BOOL_BASE_URL` | Base URL for anonymous deployments | `https://bool.com` |
+
+### Example using environment variables
+
+```bash
+export BOOL_API_KEY="your-api-key-here"
+bool list
+```
+
+## Update Bool CLI
+
+To update to the latest version:
+
+<CodeGroup>
+
+```bash npm
+npm update -g bool-cli
+```
+
+```bash yarn
+yarn global upgrade bool-cli
+```
+
+```bash pnpm
+pnpm update -g bool-cli
+```
+
+</CodeGroup>
+
+## Uninstall
+
+To remove Bool CLI from your system:
+
+<CodeGroup>
+
+```bash npm
+npm uninstall -g bool-cli
+```
+
+```bash yarn
+yarn global remove bool-cli
+```
+
+```bash pnpm
+pnpm remove -g bool-cli
+```
+
+</CodeGroup>
+
+Optionally, remove the configuration directory:
+
+```bash
+rm -rf ~/.config/bool-cli
+```
+
+## Next steps
+
+<Card title="Quickstart guide" icon="rocket" href="/quickstart">
+  Follow the quickstart to deploy your first project
+</Card>

@@ -1,0 +1,367 @@
+---
+title: Managing versions
+description: Track, deploy, and retrieve specific versions of your Bool
+---
+
+Every deployment creates a new version of your Bool. The CLI provides commands to view version history, deploy new versions, and pull files from specific versions.
+
+## Understanding versions
+
+<Card title="Incremental versioning" icon="code-branch">
+  Each `bool deploy` creates a new version (v1, v2, v3, etc.). Versions are immutable and preserve your complete file history.
+</Card>
+
+## Viewing version history
+
+List all versions of a Bool with the `bool versions` command:
+
+```bash
+bool versions
+```
+
+```bash
+Version  Files  Message              Created
+v5       12     Added contact form   2026-03-03T14:30:00Z
+v4       12     Updated styles       2026-03-03T12:15:00Z
+v3       10     Fixed navigation     2026-03-03T10:45:00Z
+v2       10     Initial styles       2026-03-03T09:30:00Z
+v1       8      Initial deployment   2026-03-03T09:00:00Z
+```
+
+### Viewing versions for a specific Bool
+
+When not in a project directory with `.bool/config`, specify the slug:
+
+```bash
+bool versions my-portfolio-site
+```
+
+### JSON output
+
+Get version data as JSON for scripting:
+
+```bash
+bool versions --json
+```
+
+```json
+[
+  {
+    "version_number": 5,
+    "file_count": 12,
+    "commit_message": "Added contact form",
+    "created_at": "2026-03-03T14:30:00Z"
+  },
+  {
+    "version_number": 4,
+    "file_count": 12,
+    "commit_message": "Updated styles",
+    "created_at": "2026-03-03T12:15:00Z"
+  }
+]
+```
+
+## Deploying new versions
+
+Each deployment automatically creates a new version:
+
+<Tabs>
+  <Tab title="With message">
+    ```bash
+    bool deploy -m "Redesigned homepage"
+    ```
+
+    ```bash
+    ℹ Deploying 15 file(s) from /home/user/projects/portfolio…
+    ✔ Deployed v6 (15 files)
+    ℹ Live URL: https://my-portfolio-site.bool01.com
+    ```
+  </Tab>
+
+  <Tab title="Without message">
+    ```bash
+    bool deploy
+    ```
+
+    ```bash
+    ℹ Deploying 15 file(s) from /home/user/projects/portfolio…
+    ✔ Deployed v6 (15 files)
+    ℹ Live URL: https://my-portfolio-site.bool01.com
+    ```
+
+    The version is created without a commit message.
+  </Tab>
+</Tabs>
+
+### Version numbering
+
+Versions increment automatically:
+
+- First deployment: v1
+- Second deployment: v2
+- Third deployment: v3
+- And so on...
+
+You cannot manually specify version numbers or skip versions.
+
+## Pulling specific versions
+
+Retrieve files from any version using the `bool pull` command with the `--version` flag.
+
+<Steps>
+  <Step title="Pull the latest version">
+    Without specifying a version, `bool pull` retrieves the latest:
+
+    ```bash
+    bool pull
+    ```
+
+    ```bash
+    ✔ Pulled 12 file(s) to my-portfolio-site (v5)
+    ```
+
+    Files are downloaded to a directory named after your Bool's slug.
+  </Step>
+
+  <Step title="Pull a specific version">
+    Use `--version` to retrieve an older version:
+
+    ```bash
+    bool pull --version 3
+    ```
+
+    ```bash
+    ✔ Pulled 10 file(s) to my-portfolio-site (v3)
+    ```
+
+    This downloads the files exactly as they were in version 3.
+  </Step>
+
+  <Step title="Specify output directory">
+    Control where files are downloaded:
+
+    ```bash
+    bool pull --version 3 ./backup-v3
+    ```
+
+    ```bash
+    ✔ Pulled 10 file(s) to /home/user/backup-v3 (v3)
+    ```
+  </Step>
+</Steps>
+
+### Pull from a specific Bool
+
+When not in a project directory, specify the slug:
+
+```bash
+bool pull my-portfolio-site --version 2
+```
+
+## Comparing versions
+
+While the CLI doesn't have a built-in diff command, you can compare versions manually:
+
+<Steps>
+  <Step title="Pull two versions">
+    ```bash
+    bool pull --version 4 ./v4
+    bool pull --version 5 ./v5
+    ```
+  </Step>
+
+  <Step title="Use diff to compare">
+    ```bash
+    diff -r ./v4 ./v5
+    ```
+
+    Or use a GUI diff tool:
+
+    ```bash
+    code --diff ./v4/index.html ./v5/index.html
+    ```
+  </Step>
+</Steps>
+
+## Version metadata
+
+Each version stores:
+
+<CardGroup cols={2}>
+  <Card title="Version number" icon="hashtag">
+    Sequential identifier (v1, v2, v3...)
+  </Card>
+  <Card title="File count" icon="files">
+    Number of files in this version
+  </Card>
+  <Card title="Commit message" icon="message">
+    Optional message documenting changes
+  </Card>
+  <Card title="Created timestamp" icon="clock">
+    When the version was deployed
+  </Card>
+</CardGroup>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use descriptive commit messages">
+    Document what changed in each version:
+
+    ```bash
+    bool deploy -m "Fixed mobile navigation overflow"
+    bool deploy -m "Added dark mode toggle"
+    bool deploy -m "Updated pricing page with new tiers"
+    ```
+
+    This makes version history much more useful when you need to find a specific change.
+  </Accordion>
+
+  <Accordion title="Pull before making major changes">
+    Create a local backup before risky updates:
+
+    ```bash
+    bool pull ./backup-before-redesign
+    # Make changes
+    bool deploy -m "Major redesign"
+    ```
+
+    If something goes wrong, you have the previous version locally.
+  </Accordion>
+
+  <Accordion title="Review version history regularly">
+    Check what's been deployed:
+
+    ```bash
+    bool versions
+    ```
+
+    Helps identify when specific features were added or bugs were introduced.
+  </Accordion>
+
+  <Accordion title="Test before deploying">
+    Preview locally before creating a new version:
+
+    ```bash
+    # Test your changes
+    npm run build && npm run preview
+    # Then deploy
+    bool deploy -m "Tested and ready"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Version workflows
+
+<Tabs>
+  <Tab title="Rollback">
+    To rollback to a previous version:
+
+    ```bash
+    # Pull the old version
+    bool pull --version 3 ./rollback
+    
+    # Review the files
+    cd rollback
+    
+    # Deploy as a new version
+    bool deploy -m "Rollback to v3"
+    ```
+
+    This creates a new version (e.g., v6) with the same content as v3.
+  </Tab>
+
+  <Tab title="Feature comparison">
+    Compare implementations across versions:
+
+    ```bash
+    # Get current version
+    bool pull ./current
+    
+    # Get version before feature was added
+    bool pull --version 5 ./before-feature
+    
+    # Compare
+    diff -r ./before-feature ./current
+    ```
+  </Tab>
+
+  <Tab title="Archive">
+    Archive major versions for safekeeping:
+
+    ```bash
+    mkdir archives
+    bool pull --version 10 ./archives/v10-major-release
+    bool pull --version 20 ./archives/v20-redesign
+    ```
+  </Tab>
+</Tabs>
+
+## Viewing latest version details
+
+The `bool show` command displays the latest version info:
+
+```bash
+bool show
+```
+
+```bash
+ℹ Name: My Portfolio Site
+ℹ Slug: my-portfolio-site
+ℹ Visibility: private
+ℹ Description: (none)
+ℹ URL: https://my-portfolio-site.bool01.com
+ℹ Created: 2026-03-01T10:00:00Z
+ℹ Updated: 2026-03-03T14:30:00Z
+
+ℹ Latest version: v5
+ℹ   Files: 12
+ℹ   Message: Added contact form
+ℹ   Created: 2026-03-03T14:30:00Z
+```
+
+## Version limitations
+
+<Warning>
+  **Versions are immutable**
+  
+  Once created, a version cannot be modified or deleted. You can only create new versions or pull existing ones.
+</Warning>
+
+<Note>
+  There's no hard limit on the number of versions you can create. However, each version stores a complete snapshot of your files, so be mindful of total storage usage.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Version not found">
+    Make sure the version number exists:
+
+    ```bash
+    bool versions
+    ```
+
+    Then pull using a valid version number:
+
+    ```bash
+    bool pull --version 3
+    ```
+  </Accordion>
+
+  <Accordion title="No versions found">
+    This happens when a Bool exists but has no deployments yet. Deploy files first:
+
+    ```bash
+    bool deploy
+    ```
+  </Accordion>
+
+  <Accordion title="Pull creates unexpected directory">
+    By default, `bool pull` creates a directory named after your Bool's slug. Specify the output directory explicitly:
+
+    ```bash
+    bool pull --version 2 ./my-custom-dir
+    ```
+  </Accordion>
+</AccordionGroup>

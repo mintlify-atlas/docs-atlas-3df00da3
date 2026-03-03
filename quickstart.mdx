@@ -1,80 +1,273 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Deploy your first project with Bool CLI in under 2 minutes
 ---
 
-## Get started in three steps
+## Get started with Bool CLI
 
-Get your documentation site running locally and make your first customization.
+This guide will take you from installation to your first successful deployment in just a few steps.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Install Bool CLI">
+    Install the CLI globally using npm, yarn, or pnpm:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    <CodeGroup>
 
-### Step 2: Deploy your changes
+    ```bash npm
+    npm install -g bool-cli
+    ```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash yarn
+    yarn global add bool-cli
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash pnpm
+    pnpm add -g bool-cli
+    ```
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    </CodeGroup>
 
-### Step 3: Go live
+    Verify the installation:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    ```bash
+    bool --version
+    ```
+  </Step>
+
+  <Step title="Quick deploy with shipit (no auth required)">
+    The fastest way to get code live—no API key needed:
+
+    ```bash
+    bool shipit
+    ```
+
+    This creates an anonymous Bool and deploys all files from your current directory. You'll see output like:
+
+    ```
+    https://zx9k2m.bool01.com
+    ✔ Shipped "my-project" (12 files)
+      https://zx9k2m.bool01.com
+      slug: zx9k2m
+    ```
+
+    <Note>
+    Your project is now live! The CLI automatically creates a `.bool/config` file to track this Bool for future updates.
+    </Note>
+
+    To update the same Bool, just run `bool shipit` again from the same directory:
+
+    ```bash
+    bool shipit --message "Update homepage"
+    ```
+
+    Output:
+
+    ```
+    https://zx9k2m.bool01.com
+    ✔ Updated v2 (12 files)
+      https://zx9k2m.bool01.com
+      slug: zx9k2m
+    ```
+  </Step>
+
+  <Step title="Authenticate for full features (optional)">
+    For authenticated deployments and project management, log in with your API key:
+
+    ```bash
+    bool auth login
+    ```
+
+    You'll be prompted to enter your API key:
+
+    ```
+    Enter your bool.com API key: 
+    ```
+
+    <Note>
+    Get your API key from the [bool.com](https://bool.com) web UI in your account settings.
+    </Note>
+
+    After entering your key, you'll see:
+
+    ```
+    API key saved to ~/.config/bool-cli/config.json
+    ```
+
+    Verify your authentication:
+
+    ```bash
+    bool auth status
+    ```
+
+    Output:
+
+    ```
+    API key: sk_live_…abc123
+    API is reachable and healthy.
+    ```
+
+    <Warning>
+    Keep your API key secure. You can also set it using the `BOOL_API_KEY` environment variable instead of storing it in a config file.
+    </Warning>
+  </Step>
+
+  <Step title="Create and deploy a project">
+    With authentication set up, you can create named Bools and deploy with full version control:
+
+    ```bash
+    bool create my-awesome-app
+    ```
+
+    Output:
+
+    ```
+    Created "my-awesome-app" (my-awesome-app)
+    URL: https://my-awesome-app.bool01.com
+    ```
+
+    Deploy files to your Bool:
+
+    ```bash
+    bool deploy my-awesome-app --message "Initial deployment"
+    ```
+
+    Output:
+
+    ```
+    Deploying 15 file(s) from /home/user/my-awesome-app…
+    Deployed v1 (15 files)
+    Live URL: https://my-awesome-app.bool01.com
+    ```
+  </Step>
+
+  <Step title="List your projects">
+    View all your Bools:
+
+    ```bash
+    bool list
+    ```
+
+    Example output:
+
+    ```
+    ┌─────────────────┬─────────────────┬────────────┬──────────────────────────────┬─────────────────────┐
+    │ Name            │ Slug            │ Visibility │ URL                          │ Updated             │
+    ├─────────────────┼─────────────────┼────────────┼──────────────────────────────┼─────────────────────┤
+    │ my-awesome-app  │ my-awesome-app  │ private    │ https://my-awesome-app.b...  │ 2026-03-03T10:30:00 │
+    │ landing-page    │ landing-page    │ public     │ https://landing-page.boo...  │ 2026-03-02T15:20:00 │
+    └─────────────────┴─────────────────┴────────────┴──────────────────────────────┴─────────────────────┘
+    ```
+
+    <Note>
+    Use `--limit` to control how many Bools are shown (default is 20):
+    ```bash
+    bool list --limit 50
+    ```
+    </Note>
+  </Step>
+
+  <Step title="View project details">
+    Get detailed information about a Bool:
+
+    ```bash
+    bool show my-awesome-app
+    ```
+
+    Output:
+
+    ```
+    Name: my-awesome-app
+    Slug: my-awesome-app
+    Visibility: private
+    Description: (none)
+    URL: https://my-awesome-app.bool01.com
+    Created: 2026-03-03T10:30:00
+    Updated: 2026-03-03T10:30:00
+
+    Latest version: v1
+      Files: 15
+      Message: Initial deployment
+      Created: 2026-03-03T10:30:00
+    ```
+
+    If you're in a directory with a `.bool/config` file, you can omit the slug:
+
+    ```bash
+    cd my-awesome-app
+    bool show
+    ```
+  </Step>
+</Steps>
+
+## Working with versions
+
+View deployment history:
+
+```bash
+bool versions my-awesome-app
+```
+
+Example output:
+
+```
+┌─────────┬───────┬─────────────────────┬─────────────────────┐
+│ Version │ Files │ Message             │ Created             │
+├─────────┼───────┼─────────────────────┼─────────────────────┤
+│ v3      │ 15    │ Add dark mode       │ 2026-03-03T14:20:00 │
+│ v2      │ 15    │ Update homepage     │ 2026-03-03T12:15:00 │
+│ v1      │ 15    │ Initial deployment  │ 2026-03-03T10:30:00 │
+└─────────┴───────┴─────────────────────┴─────────────────────┘
+```
+
+Pull a specific version:
+
+```bash
+bool pull my-awesome-app ./backup --version 2
+```
+
+## Smart file handling
+
+Bool CLI automatically respects `.boolignore` files (using gitignore syntax):
+
+```text .boolignore
+node_modules
+.env
+*.log
+dist
+.DS_Store
+```
+
+Default exclusions include `.git`, `node_modules`, `__pycache__`, `.DS_Store`, and `.bool`.
+
+You can also exclude files on the fly:
+
+```bash
+bool deploy --exclude "*.test.js" --exclude "__mocks__"
+```
+
+## JSON output
+
+All commands support `--json` for machine-readable output:
+
+```bash
+bool list --json
+bool show my-awesome-app --json
+bool versions my-awesome-app --json
+```
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Commands reference" icon="terminal" href="/commands/overview">
+    Explore all commands and options
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Customize your setup
+  </Card>
+  <Card title="Workflows" icon="workflow" href="/guides/creating-deploying">
+    Learn deployment workflows
+  </Card>
+  <Card title="Advanced features" icon="star" href="/guides/exclusion-patterns">
+    File patterns and automation
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

@@ -1,0 +1,360 @@
+---
+title: Environment variables
+description: Configure the Bool CLI using environment variables for API access, custom URLs, and more
+---
+
+The Bool CLI can be configured using environment variables, which is especially useful for CI/CD pipelines and automated deployments.
+
+## Available variables
+
+### BOOL_API_KEY
+
+Your Bool API key for authentication. This overrides the API key stored in `~/.config/bool-cli/config.json`.
+
+```bash
+export BOOL_API_KEY="your-api-key-here"
+bool list
+```
+
+<Info>
+Generate an API key at [bool.com/settings/api](https://bool.com/settings/api)
+</Info>
+
+### BOOL_API_URL
+
+The base URL for the Bool API. Defaults to `https://bool.com/api`.
+
+```bash
+export BOOL_API_URL="https://api.bool.com"
+bool list
+```
+
+<Warning>
+Only change `BOOL_API_URL` if you're using a custom Bool instance or testing against a development server. The default value works for production use.
+</Warning>
+
+### BOOL_BASE_URL
+
+The base URL for anonymous Bool deployments. Used by `bool shipit` command. Defaults to `https://bool.com`.
+
+```bash
+export BOOL_BASE_URL="https://bool.com"
+bool shipit
+```
+
+## Configuration precedence
+
+The Bool CLI uses the following precedence order (highest to lowest):
+
+1. **Environment variables** (e.g., `BOOL_API_KEY`)
+2. **Config file** (`~/.config/bool-cli/config.json`)
+3. **Default values** (built-in defaults)
+
+### API key precedence
+
+The `getApiKey()` function in `src/utils/config.js:21-23` checks in this order:
+
+```javascript
+export function getApiKey() {
+  return process.env.BOOL_API_KEY || readConfig().apiKey || null;
+}
+```
+
+1. `BOOL_API_KEY` environment variable
+2. `apiKey` from `~/.config/bool-cli/config.json`
+3. `null` if neither is set
+
+### API URL precedence
+
+The `getApiUrl()` function in `src/utils/config.js:31-33` returns:
+
+```javascript
+export function getApiUrl() {
+  return process.env.BOOL_API_URL || 'https://bool.com/api';
+}
+```
+
+1. `BOOL_API_URL` environment variable
+2. `https://bool.com/api` (default)
+
+## Usage examples
+
+### One-time use
+
+Set environment variables for a single command:
+
+```bash
+BOOL_API_KEY="your-key" bool list
+```
+
+### Session-wide
+
+Export variables for the current shell session:
+
+```bash
+export BOOL_API_KEY="your-key"
+bool list
+bool show my-slug
+bool deploy
+```
+
+### Permanent configuration
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash ~/.zshrc
+# Bool CLI configuration
+export BOOL_API_KEY="your-key"
+```
+
+Then reload your shell:
+
+```bash
+source ~/.zshrc
+```
+
+## CI/CD configuration
+
+### GitHub Actions
+
+Store the API key as a repository secret and use it in workflows:
+
+```yaml .github/workflows/deploy.yml
+name: Deploy to Bool
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Bool CLI
+        run: npm install -g @bool/cli
+      
+      - name: Deploy
+        env:
+          BOOL_API_KEY: ${{ secrets.BOOL_API_KEY }}
+        run: bool deploy -m "Deploy from GitHub Actions"
+```
+
+<Tip>
+Go to **Settings → Secrets and variables → Actions** in your GitHub repository to add the `BOOL_API_KEY` secret.
+</Tip>
+
+### GitLab CI
+
+Use CI/CD variables to store your API key:
+
+```yaml .gitlab-ci.yml
+deploy:
+  stage: deploy
+  image: node:20
+  script:
+    - npm install -g @bool/cli
+    - bool deploy -m "Deploy from GitLab CI"
+  variables:
+    BOOL_API_KEY: $BOOL_API_KEY
+  only:
+    - main
+```
+
+Add the `BOOL_API_KEY` variable in **Settings → CI/CD → Variables**.
+
+### CircleCI
+
+```yaml .circleci/config.yml
+version: 2.1
+
+jobs:
+  deploy:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install Bool CLI
+          command: npm install -g @bool/cli
+      - run:
+          name: Deploy to Bool
+          command: bool deploy -m "Deploy from CircleCI"
+
+workflows:
+  deploy:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only: main
+```
+
+Add `BOOL_API_KEY` in **Project Settings → Environment Variables**.
+
+### Docker
+
+Pass environment variables to Docker containers:
+
+```bash
+docker run -e BOOL_API_KEY="your-key" \
+  -v $(pwd):/app \
+  -w /app \
+  node:20 \
+  sh -c "npm install -g @bool/cli && bool deploy"
+```
+
+Or use a `.env` file:
+
+```bash
+docker run --env-file .env \
+  -v $(pwd):/app \
+  -w /app \
+  node:20 \
+  sh -c "npm install -g @bool/cli && bool deploy"
+```
+
+## Security best practices
+
+<Warning>
+Never commit API keys to version control. Use environment variables or secrets management instead.
+</Warning>
+
+### Use secrets management
+
+<CodeGroup>
+```bash AWS Secrets Manager
+# Retrieve secret and export
+export BOOL_API_KEY=$(aws secretsmanager get-secret-value \
+  --secret-id bool-api-key \
+  --query SecretString \
+  --output text)
+
+bool deploy
+```
+
+```bash 1Password CLI
+# Use 1Password to inject secrets
+op run --env-file=.env -- bool deploy
+```
+
+```bash HashiCorp Vault
+# Get secret from Vault
+export BOOL_API_KEY=$(vault kv get -field=api_key secret/bool)
+
+bool deploy
+```
+</CodeGroup>
+
+### Verify configuration
+
+Check which API key is being used:
+
+```bash
+bool auth status
+```
+
+This will show a masked version of your API key and verify API connectivity.
+
+### Avoid logging secrets
+
+When using environment variables in scripts, be careful not to echo them:
+
+```bash
+# ❌ BAD - logs the API key
+echo "Using API key: $BOOL_API_KEY"
+
+# ✅ GOOD - masks the key
+echo "Using API key: ${BOOL_API_KEY:0:8}..."
+
+# ✅ BETTER - don't log it at all
+if [ -n "$BOOL_API_KEY" ]; then
+  echo "API key is configured"
+fi
+```
+
+## Environment files
+
+Create a `.env` file for local development (and add it to `.gitignore`):
+
+```bash .env
+BOOL_API_KEY=your-key-here
+BOOL_API_URL=https://bool.com/api
+```
+
+Load it before running commands:
+
+```bash
+# Using export
+export $(cat .env | xargs)
+bool deploy
+
+# Using source (for .env with export statements)
+source .env
+bool deploy
+
+# Using dotenv CLI
+npx dotenv bool deploy
+```
+
+<Warning>
+Always add `.env` to your `.gitignore` file to prevent committing secrets:
+
+```text .gitignore
+.env
+.env.local
+.env.*.local
+```
+</Warning>
+
+## Troubleshooting
+
+<Accordion title="Environment variable not being recognized">
+  Make sure you've exported the variable (not just set it). Use `export BOOL_API_KEY="..."` instead of `BOOL_API_KEY="..."`. Verify with `echo $BOOL_API_KEY`.
+</Accordion>
+
+<Accordion title="Which API key is being used?">
+  Run `bool auth status` to see which API key is active. The CLI will show a masked version of the key and indicate whether it came from the environment or config file.
+</Accordion>
+
+<Accordion title="API key works locally but not in CI">
+  Check that your CI platform's secret is named exactly `BOOL_API_KEY` and that it's being passed to the environment where the CLI runs. Some CI platforms require explicit variable declarations in the workflow file.
+</Accordion>
+
+<Accordion title="How to test with a different API URL">
+  Set `BOOL_API_URL` temporarily for testing:
+  
+  ```bash
+  BOOL_API_URL="https://staging-api.bool.com" bool list
+  ```
+  
+  This only affects that one command. The environment variable takes precedence over the default.
+</Accordion>
+
+## Implementation details
+
+### Config file location
+
+The config file is stored at `~/.config/bool-cli/config.json` (defined in `src/utils/config.js:5-6`):
+
+```javascript
+const CONFIG_DIR = path.join(os.homedir(), '.config', 'bool-cli');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+```
+
+### Authentication flow
+
+When making API requests, the CLI:
+
+1. Calls `getApiKey()` to retrieve the API key (checks env var, then config file)
+2. If no key is found, throws an error: `No API key configured. Run: bool auth login`
+3. Adds the key as a `Bearer` token in the `Authorization` header
+
+See `src/utils/api.js:3-12` for the implementation.
+
+## See also
+
+- [Authentication](/authentication) - Learn how to obtain and manage API keys
+- [JSON output](/guides/json-output) - Use with environment variables for CI/CD automation
+- [Troubleshooting](/guides/troubleshooting) - Common authentication and API issues

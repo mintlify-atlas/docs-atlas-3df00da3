@@ -1,0 +1,343 @@
+---
+title: Configuration
+description: Configure global settings and environment variables for the Bool CLI
+---
+
+The Bool CLI can be configured using a global configuration file and environment variables. This allows you to customize API endpoints, authentication, and other behavior.
+
+## Configuration file
+
+The CLI stores global configuration in:
+
+```
+~/.config/bool-cli/config.json
+```
+
+### File structure
+
+The configuration file uses JSON format:
+
+```json
+{
+  "apiKey": "your-api-key-here"
+}
+```
+
+<Info>
+  The configuration file is automatically created when you run `bool auth login`. You don't need to create it manually.
+</Info>
+
+### Creating the configuration
+
+The CLI creates the configuration directory and file automatically (`src/utils/config.js:16-19`):
+
+```javascript
+function writeConfig(config) {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n');
+}
+```
+
+## Environment variables
+
+Environment variables provide a flexible way to configure the CLI, especially for CI/CD pipelines and different environments.
+
+### Available environment variables
+
+<Tabs>
+  <Tab title="BOOL_API_KEY">
+    **Purpose**: Set your Bool API key for authentication
+
+    **Default**: None (reads from `~/.config/bool-cli/config.json` if not set)
+
+    **Example**:
+    ```bash
+    export BOOL_API_KEY="your-api-key-here"
+    ```
+
+    <Note>
+      This variable takes precedence over the API key stored in the configuration file.
+    </Note>
+  </Tab>
+
+  <Tab title="BOOL_API_URL">
+    **Purpose**: Override the Bool API endpoint URL
+
+    **Default**: `https://bool.com/api`
+
+    **Example**:
+    ```bash
+    export BOOL_API_URL="https://api.bool.com"
+    ```
+
+    **Use cases**:
+    - Testing against a staging environment
+    - Using a custom API proxy
+    - Local development with a mock API
+
+    From the source code (`src/utils/config.js:31-33`):
+    ```javascript
+    export function getApiUrl() {
+      return process.env.BOOL_API_URL || 'https://bool.com/api';
+    }
+    ```
+  </Tab>
+
+  <Tab title="BOOL_BASE_URL">
+    **Purpose**: Override the base URL for Bool websites and the shipit command
+
+    **Default**: `https://bool.com`
+
+    **Example**:
+    ```bash
+    export BOOL_BASE_URL="https://staging.bool.com"
+    ```
+
+    **Used by**: The `bool shipit` command for creating and updating anonymous Bools
+
+    From the source code (`src/commands/shipit.js:33-34`):
+    ```javascript
+    const baseUrl = (opts.baseUrl || process.env.BOOL_BASE_URL || 'https://bool.com')
+      .replace(/\/+$/, '');
+    ```
+
+    <Info>
+      You can also override this per-command using the `--base-url` flag with `bool shipit`.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Configuration precedence
+
+When the CLI looks for configuration values, it follows this priority order (highest to lowest):
+
+<Steps>
+  <Step title="Command-line flags">
+    Flags passed directly to commands always take precedence.
+
+    ```bash
+    bool shipit --base-url https://custom.bool.com
+    ```
+  </Step>
+
+  <Step title="Environment variables">
+    Environment variables override configuration file settings.
+
+    ```bash
+    export BOOL_API_KEY="env-api-key"
+    bool auth status  # Uses env-api-key
+    ```
+  </Step>
+
+  <Step title="Configuration file">
+    Values from `~/.config/bool-cli/config.json` are used if no environment variable or flag is set.
+
+    ```json
+    {
+      "apiKey": "file-api-key"
+    }
+    ```
+  </Step>
+
+  <Step title="Default values">
+    Built-in defaults are used as a fallback.
+
+    - `BOOL_API_URL`: `https://bool.com/api`
+    - `BOOL_BASE_URL`: `https://bool.com`
+  </Step>
+</Steps>
+
+### Example precedence
+
+Given this configuration:
+
+```json
+// ~/.config/bool-cli/config.json
+{
+  "apiKey": "config-file-key"
+}
+```
+
+And this environment:
+
+```bash
+export BOOL_API_KEY="environment-key"
+```
+
+The CLI will use `environment-key` because environment variables have higher precedence.
+
+## Configuration examples
+
+### Development environment
+
+Set up a local development environment:
+
+```bash
+# .env.development
+export BOOL_API_URL="http://localhost:8000/api"
+export BOOL_BASE_URL="http://localhost:8000"
+export BOOL_API_KEY="dev-api-key"
+```
+
+Load the environment:
+
+```bash
+source .env.development
+bool auth status
+```
+
+### CI/CD pipeline
+
+Configure GitHub Actions:
+
+```yaml
+name: Deploy to Bool
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy
+        env:
+          BOOL_API_KEY: ${{ secrets.BOOL_API_KEY }}
+        run: |
+          npm install -g @bool/cli
+          bool deploy
+```
+
+### Multiple environments
+
+Manage different API keys for different environments:
+
+<CodeGroup>
+```bash Production
+# .env.production
+export BOOL_API_KEY="prod-api-key-xyz"
+export BOOL_API_URL="https://bool.com/api"
+```
+
+```bash Staging
+# .env.staging
+export BOOL_API_KEY="staging-api-key-abc"
+export BOOL_API_URL="https://staging.bool.com/api"
+```
+
+```bash Development
+# .env.development
+export BOOL_API_KEY="dev-api-key-123"
+export BOOL_API_URL="http://localhost:8000/api"
+```
+</CodeGroup>
+
+Load the appropriate environment:
+
+```bash
+# For staging
+source .env.staging
+bool deploy
+
+# For production
+source .env.production
+bool deploy
+```
+
+## Reading configuration
+
+The CLI reads configuration using these functions (`src/utils/config.js:8-14`):
+
+```javascript
+function readConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+```
+
+<Note>
+  If the configuration file doesn't exist or can't be read, the CLI returns an empty object and falls back to environment variables and defaults.
+</Note>
+
+## Best practices
+
+### Use environment variables for CI/CD
+
+<Warning>
+  Never hardcode API keys in scripts or commit them to version control. Always use environment variables or secret management systems.
+</Warning>
+
+```bash
+# Good: Use environment variable
+export BOOL_API_KEY="$SECRET_API_KEY"
+bool deploy
+
+# Bad: Hardcoded API key
+bool deploy  # with API key in config.json committed to git
+```
+
+### Separate environments
+
+Use different API keys and URLs for each environment:
+
+- **Development**: Local API or sandbox environment
+- **Staging**: Pre-production testing environment
+- **Production**: Live production API
+
+### Validate configuration
+
+Before running critical commands, verify your configuration:
+
+```bash
+# Check authentication and API connectivity
+bool auth status
+
+# Verify which API URL is being used
+echo $BOOL_API_URL
+
+# Check if environment variable is set
+env | grep BOOL
+```
+
+## Troubleshooting
+
+### Configuration not loading
+
+If changes to `~/.config/bool-cli/config.json` aren't taking effect:
+
+1. **Check for environment variables** that might be overriding the file:
+   ```bash
+   env | grep BOOL
+   ```
+
+2. **Verify file syntax** - ensure the JSON is valid:
+   ```bash
+   cat ~/.config/bool-cli/config.json | jq .
+   ```
+
+3. **Check file permissions**:
+   ```bash
+   ls -la ~/.config/bool-cli/config.json
+   ```
+
+### Environment variables not working
+
+If environment variables aren't being recognized:
+
+1. **Verify the variable is set**:
+   ```bash
+   echo $BOOL_API_KEY
+   ```
+
+2. **Use `export`** to make variables available to child processes:
+   ```bash
+   export BOOL_API_KEY="your-key"  # Correct
+   BOOL_API_KEY="your-key"         # Won't work for CLI
+   ```
+
+3. **Check your shell profile** if setting permanently:
+   ```bash
+   source ~/.bashrc  # or ~/.zshrc
+   ```

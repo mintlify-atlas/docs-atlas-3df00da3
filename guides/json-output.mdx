@@ -1,0 +1,420 @@
+---
+title: JSON output
+description: Use JSON output mode for scripting and automation with the Bool CLI
+---
+
+Most Bool CLI commands support a `--json` flag that outputs structured JSON instead of human-readable text. This is useful for scripting, automation, and integration with other tools.
+
+## Available commands
+
+The `--json` flag is available on these commands:
+
+- `bool list` - List all Bools
+- `bool create` - Create a new Bool
+- `bool show` - Show Bool details
+- `bool update` - Update a Bool
+- `bool versions` - List version history
+- `bool deploy` - Deploy files
+- `bool pull` - Download files
+
+<Note>
+The `--json` flag is implemented in `src/commands/bools.js` and `src/commands/versions.js`. Commands that don't support `--json` output to stdout/stderr in plain text format.
+</Note>
+
+## Command outputs
+
+### List Bools
+
+Get a JSON array of all your Bools:
+
+```bash
+bool list --json
+```
+
+<CodeGroup>
+```json Output
+[
+  {
+    "name": "My Documentation",
+    "slug": "my-docs",
+    "visibility": "public",
+    "url": "https://my-docs.bool01.com",
+    "updated_at": "2026-03-03T10:30:00Z",
+    "created_at": "2026-03-01T14:20:00Z"
+  },
+  {
+    "name": "API Project",
+    "slug": "api-project",
+    "visibility": "private",
+    "url": "https://api-project.bool01.com",
+    "updated_at": "2026-03-02T16:45:00Z",
+    "created_at": "2026-02-28T09:15:00Z"
+  }
+]
+```
+
+```bash Limit results
+bool list --limit 5 --json
+```
+</CodeGroup>
+
+### Create Bool
+
+Create a Bool and get the result as JSON:
+
+```bash
+bool create "My New Project" --json
+```
+
+```json Output
+{
+  "name": "My New Project",
+  "slug": "my-new-project",
+  "visibility": "private",
+  "description": "",
+  "url": "https://my-new-project.bool01.com",
+  "created_at": "2026-03-03T12:00:00Z",
+  "updated_at": "2026-03-03T12:00:00Z"
+}
+```
+
+### Show Bool details
+
+Get detailed information about a specific Bool:
+
+```bash
+bool show my-slug --json
+```
+
+```json Output
+{
+  "name": "My Documentation",
+  "slug": "my-slug",
+  "visibility": "public",
+  "description": "Documentation for my project",
+  "url": "https://my-slug.bool01.com",
+  "created_at": "2026-03-01T14:20:00Z",
+  "updated_at": "2026-03-03T10:30:00Z",
+  "latest_version": {
+    "version_number": 5,
+    "file_count": 12,
+    "commit_message": "Update API documentation",
+    "created_at": "2026-03-03T10:30:00Z"
+  }
+}
+```
+
+### Update Bool
+
+Update Bool metadata and get the new state:
+
+```bash
+bool update my-slug --visibility public --json
+```
+
+```json Output
+{
+  "name": "My Documentation",
+  "slug": "my-slug",
+  "visibility": "public",
+  "description": "Documentation for my project",
+  "url": "https://my-slug.bool01.com",
+  "created_at": "2026-03-01T14:20:00Z",
+  "updated_at": "2026-03-03T12:15:00Z"
+}
+```
+
+### List versions
+
+Get the version history as JSON:
+
+```bash
+bool versions my-slug --json
+```
+
+```json Output
+[
+  {
+    "version_number": 5,
+    "file_count": 12,
+    "commit_message": "Update API documentation",
+    "created_at": "2026-03-03T10:30:00Z"
+  },
+  {
+    "version_number": 4,
+    "file_count": 11,
+    "commit_message": "Fix typos",
+    "created_at": "2026-03-02T16:45:00Z"
+  },
+  {
+    "version_number": 3,
+    "file_count": 10,
+    "commit_message": "Add new guide",
+    "created_at": "2026-03-01T09:20:00Z"
+  }
+]
+```
+
+### Deploy
+
+Deploy files and get deployment details:
+
+```bash
+bool deploy --json
+```
+
+```json Output
+{
+  "version_number": 6,
+  "file_count": 13,
+  "commit_message": null,
+  "created_at": "2026-03-03T12:30:00Z",
+  "slug": "my-slug",
+  "url": "https://my-slug.bool01.com"
+}
+```
+
+### Pull
+
+Download files and get metadata:
+
+```bash
+bool pull my-slug --json
+```
+
+```json Output
+{
+  "version_number": 6,
+  "name": "My Documentation",
+  "slug": "my-slug",
+  "files": [
+    {
+      "filename": "index.html",
+      "code": "<!DOCTYPE html>..."
+    },
+    {
+      "filename": "styles.css",
+      "code": "body { margin: 0; }..."
+    }
+  ]
+}
+```
+
+## Parsing JSON with jq
+
+[jq](https://jqlang.github.io/jq/) is a powerful command-line JSON processor that pairs well with Bool CLI's JSON output.
+
+### Installation
+
+<CodeGroup>
+```bash macOS
+brew install jq
+```
+
+```bash Ubuntu/Debian
+sudo apt-get install jq
+```
+
+```bash Windows (Chocolatey)
+choco install jq
+```
+</CodeGroup>
+
+### Common jq patterns
+
+<CodeGroup>
+```bash Get all Bool slugs
+bool list --json | jq -r '.[].slug'
+```
+
+```bash Count total Bools
+bool list --json | jq 'length'
+```
+
+```bash Filter by visibility
+bool list --json | jq '[.[] | select(.visibility == "public")]
+```
+
+```bash Get latest version number
+bool show my-slug --json | jq '.latest_version.version_number'
+```
+
+```bash Extract URLs
+bool list --json | jq -r '.[].url'
+```
+
+```bash Format as CSV
+bool list --json | jq -r '.[] | [.slug, .visibility, .updated_at] | @csv'
+```
+</CodeGroup>
+
+## Scripting examples
+
+### Bash: Deploy and capture URL
+
+```bash
+#!/bin/bash
+
+# Deploy and extract the live URL
+RESULT=$(bool deploy --json)
+URL=$(echo "$RESULT" | jq -r '.url // "https://" + .slug + ".bool01.com"')
+
+echo "Deployed to: $URL"
+
+# Post to Slack webhook (example)
+curl -X POST https://hooks.slack.com/your-webhook \
+  -H 'Content-Type: application/json' \
+  -d "{\"text\": \"Deployed to $URL\"}"
+```
+
+### Python: List and filter Bools
+
+```python
+import subprocess
+import json
+
+# Get all Bools
+result = subprocess.run(
+    ["bool", "list", "--json"],
+    capture_output=True,
+    text=True
+)
+
+bools = json.loads(result.stdout)
+
+# Filter public Bools updated in last 7 days
+from datetime import datetime, timedelta
+
+recent = datetime.now() - timedelta(days=7)
+public_recent = [
+    b for b in bools
+    if b['visibility'] == 'public'
+    and datetime.fromisoformat(b['updated_at'].replace('Z', '+00:00')) > recent
+]
+
+print(f"Found {len(public_recent)} recently updated public Bools")
+for b in public_recent:
+    print(f"  - {b['name']} ({b['url']})")
+```
+
+### Node.js: Automated deployment
+
+```javascript
+import { execSync } from 'child_process';
+
+// Deploy and parse result
+const output = execSync('bool deploy --json', { encoding: 'utf-8' });
+const deployment = JSON.parse(output);
+
+console.log(`Deployed version ${deployment.version_number}`);
+console.log(`Files: ${deployment.file_count}`);
+console.log(`URL: ${deployment.url}`);
+
+// Update external API with new deployment
+await fetch('https://api.example.com/deployments', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    version: deployment.version_number,
+    url: deployment.url,
+    timestamp: deployment.created_at,
+  }),
+});
+```
+
+## CI/CD integration
+
+### GitHub Actions
+
+```yaml .github/workflows/deploy.yml
+name: Deploy to Bool
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Bool CLI
+        run: npm install -g @bool/cli
+      
+      - name: Deploy to Bool
+        env:
+          BOOL_API_KEY: ${{ secrets.BOOL_API_KEY }}
+        run: |
+          RESULT=$(bool deploy --json)
+          URL=$(echo "$RESULT" | jq -r '.url')
+          VERSION=$(echo "$RESULT" | jq -r '.version_number')
+          echo "Deployed v$VERSION to $URL"
+          echo "DEPLOY_URL=$URL" >> $GITHUB_OUTPUT
+        id: deploy
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Deployed to ${{ steps.deploy.outputs.DEPLOY_URL }}`
+            })
+```
+
+### GitLab CI
+
+```yaml .gitlab-ci.yml
+deploy:
+  stage: deploy
+  script:
+    - npm install -g @bool/cli
+    - RESULT=$(bool deploy --json)
+    - URL=$(echo "$RESULT" | jq -r '.url')
+    - echo "Deployed to $URL"
+  only:
+    - main
+  variables:
+    BOOL_API_KEY: $BOOL_API_KEY
+```
+
+## Error handling
+
+When using `--json`, errors are still output to stderr in plain text, while successful results go to stdout as JSON:
+
+```bash
+# Capture output and errors separately
+bool show invalid-slug --json 2>error.log 1>output.json
+
+if [ $? -ne 0 ]; then
+  echo "Error occurred:"
+  cat error.log
+else
+  jq '.' output.json
+fi
+```
+
+<Warning>
+The JSON output structure may change between CLI versions. Pin your CLI version in production scripts to avoid unexpected breakage.
+</Warning>
+
+## Implementation details
+
+JSON output is implemented using the `json()` function in `src/utils/output.js:26-28`, which wraps `JSON.stringify()` with 2-space indentation:
+
+```javascript
+export function json(data) {
+  console.log(JSON.stringify(data, null, 2));
+}
+```
+
+Commands check for the `--json` flag and call this function instead of the standard output helpers (`success`, `info`, `table`, etc.).
+
+## See also
+
+- [Environment variables](/guides/environment-variables) - Configure API access for CI/CD
+- [Troubleshooting](/guides/troubleshooting) - Common issues with automation

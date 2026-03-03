@@ -1,0 +1,65 @@
+---
+title: bool auth
+description: Manage authentication and API credentials
+---
+
+The `bool auth` command group manages your API key and checks API connectivity.
+
+## bool auth login
+
+Save your API key to the local configuration file.
+
+```bash
+bool auth login
+```
+
+You'll be prompted to enter your API key:
+
+```bash
+Enter your bool.com API key: [paste key]
+✔ API key saved to ~/.config/bool-cli/config.json
+```
+
+<Note>
+  Get your API key from [bool.com/settings](https://bool.com/settings) after creating an account.
+</Note>
+
+### Where the API key is stored
+
+The API key is stored in `~/.config/bool-cli/config.json` on Linux/macOS or `%APPDATA%/bool-cli/config.json` on Windows.
+
+## bool auth status
+
+Check authentication status and verify API connectivity.
+
+```bash
+bool auth status
+```
+
+### Example output
+
+```bash
+ℹ API key: sk_live_…x4f2
+✔ API is reachable and healthy.
+```
+
+The API key is masked for security, showing only the first 8 and last 4 characters.
+
+### Error states
+
+<CodeGroup>
+
+```bash No API key configured
+✖ No API key configured. Run: bool auth login
+```
+
+```bash API unreachable
+ℹ API key: sk_live_…x4f2
+✖ API health check failed: Network request failed
+```
+
+</CodeGroup>
+
+<Warning>
+  If `bool auth status` fails, check your internet connection and verify your API key is valid.
+</Warning>
